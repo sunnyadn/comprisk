@@ -56,7 +56,7 @@ def test_equivalence_preset_still_uses_old_path():
     forest = CompetingRiskForest(
         n_estimators=2,
         min_samples_leaf=15,
-        bootstrap=True,
+        samptype="swr",
         random_state=0,
         equivalence="rfsrc",
         n_jobs=1,

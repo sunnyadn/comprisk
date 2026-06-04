@@ -43,6 +43,7 @@ def test_rfsrc_preset_resolves_flags_and_exposes_inbag():
         n_estimators=5,
         random_state=42,
         equivalence="rfsrc",
+        samptype="swr",  # with-replacement: inbag columns sum to n
     ).fit(X, t, e)
     assert f._rng_mode_eff_ == "rfsrc_aligned"
     assert f._split_ntime_eff_ is None
@@ -64,18 +65,20 @@ def test_rfsrc_preset_inbag_matches_legacy_helper():
         n_estimators=ntree,
         random_state=seed,
         equivalence="rfsrc",
+        samptype="swr",  # legacy helper models the with-replacement draw
     ).fit(X, t, e)
     expected = _comprisk_inbag_counts(n, ntree, seed)
     np.testing.assert_array_equal(f.inbag_, expected)
 
 
-def test_rfsrc_preset_no_inbag_when_bootstrap_false():
+def test_rfsrc_preset_no_inbag_when_full_data_swor():
     X, t, e = _toy_data()
     f = CompetingRiskForest(
         n_estimators=3,
         random_state=42,
         equivalence="rfsrc",
-        bootstrap=False,
+        samptype="swor",
+        sampsize=1.0,
     ).fit(X, t, e)
     assert f.inbag_ is None
 

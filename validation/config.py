@@ -24,7 +24,10 @@ class HarnessConfig:
     min_samples_split: int = 30
     max_features: str = "sqrt"
     max_depth: int | None = None
-    bootstrap: bool = True
+    # Full bootstrap-with-replacement (the old bootstrap=True), paired against
+    # rfSRC bootstrap="by.user" with comprisk's inbag matrix.
+    samptype: str = "swr"
+    sampsize: int | float | None = None
     test_frac: float = 0.2
     cause: int = 1
     n_seeds: int = 20

@@ -11,6 +11,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > `from crforest import …` was the supported form for those versions. See
 > the 0.3.1 entry below for the migration recipe.
 
+## [Unreleased]
+
+### Changed
+
+- **Breaking (pre-1.0): `CompetingRiskForest` replaces the `bootstrap`
+  boolean with rfsrc-style `samptype` + `sampsize`** (SUN-83). `samptype`
+  is `"swor"` (without replacement) or `"swr"` (with replacement);
+  `sampsize` is an `int` (absolute), `float` in `(0, 1]` (fraction of
+  `n`), `callable(n) -> int`, or `None` (type default). The **new default
+  is `samptype="swor", sampsize=None` → `round(0.632 * n)`**, matching
+  randomForestSRC's default (`samptype="swor"`, `sampsize = x * .632`).
+  This changes out-of-box behavior from the previous full bootstrap; pin
+  `samptype="swr"` to recover it. Migration: `bootstrap=True` →
+  `samptype="swr"`; `bootstrap=False` → `samptype="swor", sampsize=1.0`
+  (a full-`n` `"swor"` draw uses every row once in original order — no RNG
+  consumed, empty OOB — so it stays bit-identical to rfSRC
+  `samp=matrix(1L, ...)`). No compatibility shim is provided.
+- OOB-dependent methods (`predict_oob_risk`, `oob_score`, OOB
+  `compute_importance`) now require an out-of-bag set — i.e. `"swr"` or
+  `"swor"` with `sampsize < n` — rather than the old `bootstrap=True`.
+  The default `swor` 0.632n leaves ~37% OOB, so OOB importance works
+  out of the box.
+
+### Notes
+
+- The minimal-depth selection threshold is geometry-derived (Ishwaran
+  2010), so it automatically tracks the new per-tree sample size: a
+  smaller `sampsize` yields shallower trees and a higher expected-minimal-
+  depth threshold (regression-tested).
+
 ## [0.5.0] — 2026-05-12
 
 Adds penalized variable selection for Fine-Gray regression — the first

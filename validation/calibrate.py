@@ -23,7 +23,8 @@ def calibrate(datasets: list[str], config: HarnessConfig) -> dict[str, float]:
             min_samples_split=config.min_samples_split,
             max_features=config.max_features,
             max_depth=config.max_depth,
-            bootstrap=config.bootstrap,
+            samptype=config.samptype,
+            sampsize=config.sampsize,
             random_state=0,
         )
         start = time.perf_counter()

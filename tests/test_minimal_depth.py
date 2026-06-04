@@ -320,16 +320,17 @@ def test_rfsrc_var_select_match_follic():
         random_state=oracle["seed"],
         min_samples_split=30,  # rfSRC nodesize=15 → min_samples_split=2*15 (see equivalence docstring)
         min_samples_leaf=1,  # remove comprisk child-min floor; rfSRC has none
-        bootstrap=False,  # match rfSRC samp=matrix(1L,...) deterministic full-data fit
+        samptype="swor",  # full-data swor (sampsize=1.0) = rfSRC samp=matrix(1L,...)
+        sampsize=1.0,  # every row once, deterministic, empty OOB
         max_depth=None,  # rfSRC has no max-depth cap by default
         n_jobs=1,
     ).fit(X, y)
     # Inject feature names so minimal_depth() uses the oracle's column names
     forest.feature_names_in_ = feature_cols  # type: ignore[attr-defined]
 
-    # Bit-equivalent trees vs rfSRC under matched config + bootstrap=False:
+    # Bit-equivalent trees vs rfSRC under matched config + full-data swor:
     #   comprisk min_samples_split=2K, min_samples_leaf=1  matches  rfSRC nodesize=K
-    #   comprisk bootstrap=False                           matches  rfSRC samp=matrix(1L,...)
+    #   comprisk samptype="swor", sampsize=1.0             matches  rfSRC samp=matrix(1L,...)
     #   comprisk equivalence='rfsrc' (sets time-grid + RNG mode)
     #
     # Per-feature mean_min_depth values must match exactly (atol=1e-9). Threshold
@@ -337,9 +338,9 @@ def test_rfsrc_var_select_match_follic():
     # and rfSRC (tree-averaged); only comprisk's threshold is asserted via the
     # `selected` column in other tests.
     #
-    # Known limitation: under bootstrap=True, residual ~0.003 p95 ΔCIF persists
-    # from rfSRC's stream B shift during bootstrap book-keeping. SUN-44 tracks
-    # the Phase 1d RNG fix.
+    # Known limitation: under resampling (swr / subsampled swor), residual ~0.003
+    # p95 ΔCIF persists from rfSRC's stream B shift during bootstrap book-keeping.
+    # SUN-44 tracks the Phase 1d RNG fix.
     df = forest.minimal_depth()
     got_ranking = df["feature"].tolist()
     got_md = df["mean_min_depth"].values

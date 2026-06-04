@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import functools
 import warnings
+from collections.abc import Callable
 from typing import Literal
 
 import numpy as np
@@ -58,11 +59,29 @@ class CompetingRiskForest(BaseEstimator):
         Number of features considered at each split. "sqrt" and "log2"
         are rounded up; a float is interpreted as a fraction of
         ``n_features``; None uses all features.
-    bootstrap : bool, default=True
-        If True, each tree is built on a bootstrap sample drawn with
-        replacement; otherwise each tree sees all training rows.
+    samptype : {"swor", "swr"}, default="swor"
+        Per-tree sampling scheme. ``"swor"`` draws ``sampsize`` rows
+        *without* replacement (subsampling); ``"swr"`` draws ``sampsize``
+        rows *with* replacement (classic bootstrap). The default matches
+        randomForestSRC's default (``samptype="swor"``).
+    sampsize : int, float in (0, 1], callable, or None, default=None
+        Per-tree sample size. ``None`` resolves to the type default:
+        ``round(0.632 * n)`` for ``"swor"`` (the randomForestSRC default
+        ``sampsize = x * .632``) and ``n`` for ``"swr"`` (classic full
+        bootstrap). A ``float`` in ``(0, 1]`` is a fraction of ``n``; an
+        ``int`` is an absolute count; a ``callable(n) -> int`` mirrors
+        rfsrc's functional form. For ``"swor"`` the size is capped at
+        ``n``; a full-``n`` ``"swor"`` draw uses every row once in
+        original order (deterministic, no RNG consumed) and so produces
+        empty OOB sets — the configuration for bit-identical trees vs
+        rfSRC (``samp=matrix(1L, ...)``).
+
+        Out-of-bag rows are those not drawn for a tree; OOB-dependent
+        methods (:meth:`predict_oob_risk`, :meth:`oob_score`, OOB
+        :meth:`compute_importance`) require an OOB set, i.e. ``"swr"`` or
+        ``"swor"`` with ``sampsize < n``.
     random_state : int or None, default=None
-        Seed for bootstrap sampling and mtry draws. If None, results are
+        Seed for per-tree sampling and mtry draws. If None, results are
         nondeterministic.
     mode : {"default", "reference"}, default="default"
         ``"default"`` uses the numba-jitted histogram split kernel with
@@ -134,13 +153,13 @@ class CompetingRiskForest(BaseEstimator):
         Requires an explicit ``random_state``. Conflicts with explicit
         ``rng_mode`` / ``split_ntime`` raise at fit time.
 
-        To achieve **bit-identical trees** vs rfSRC under ``bootstrap=False``,
+        To achieve **bit-identical trees** vs rfSRC under a full-data fit,
         use these parameter mappings::
 
             rfSRC parameter       comprisk parameter
             -----------------     --------------------------------
             nodesize=K         -> min_samples_split=2*K, min_samples_leaf=1
-            samp=matrix(1L,...) -> bootstrap=False
+            samp=matrix(1L,...) -> samptype="swor", sampsize=1.0
             ntime=0            -> handled internally (all event times used)
             (no max-depth)     -> max_depth=None
 
@@ -149,10 +168,11 @@ class CompetingRiskForest(BaseEstimator):
         ``min_samples_split=2*K`` (guarantees each child can reach K) and
         ``min_samples_leaf=1`` (removes comprisk's own child-size floor).
 
-        Known limitation: under ``bootstrap=True`` a residual ~0.003 p95
-        ΔCIF persists because rfSRC consumes an additional RNG stream during
-        bootstrap book-keeping (SUN-44 tracks the Phase 1d fix). For
-        bit-identity, set ``bootstrap=False``.
+        Known limitation: under resampling (``"swr"`` or subsampled
+        ``"swor"``) a residual ~0.003 p95 ΔCIF persists because rfSRC
+        consumes an additional RNG stream during bootstrap book-keeping
+        (SUN-44 tracks the Phase 1d fix). For bit-identity, fit with
+        ``samptype="swor", sampsize=1.0``.
     device : {"auto", "cpu", "cuda"}, default="auto"
         Compute backend for the flat-tree path. In v0.1, ``"auto"`` resolves
         to ``"cpu"`` — the cuda backend is shipped as a preview and is
@@ -172,7 +192,8 @@ class CompetingRiskForest(BaseEstimator):
         min_samples_split: int = 6,
         min_samples_leaf: int = 3,
         max_features: str | int | float | None = "sqrt",
-        bootstrap: bool = True,
+        samptype: Literal["swor", "swr"] = "swor",
+        sampsize: int | float | Callable[[int], int] | None = None,
         random_state: int | None = None,
         mode: str = "default",
         n_bins: int = 256,
@@ -194,7 +215,8 @@ class CompetingRiskForest(BaseEstimator):
         self.min_samples_split = min_samples_split
         self.min_samples_leaf = min_samples_leaf
         self.max_features = max_features
-        self.bootstrap = bootstrap
+        self.samptype = samptype
+        self.sampsize = sampsize
         self.random_state = random_state
         self.mode = mode
         self.n_bins = n_bins
@@ -220,6 +242,8 @@ class CompetingRiskForest(BaseEstimator):
             raise ValueError(f"mode must be 'default' or 'reference'; got {self.mode!r}")
         if self.splitrule not in ("logrankCR", "logrank"):
             raise ValueError(f"splitrule must be 'logrankCR' or 'logrank'; got {self.splitrule!r}")
+        if self.samptype not in ("swor", "swr"):
+            raise ValueError(f"samptype must be 'swor' or 'swr'; got {self.samptype!r}")
         # Resolve `equivalence` preset into the per-fit effective rng_mode /
         # split_ntime / time_grid_max. Validates against explicit conflicting
         # values; the public attributes stay untouched so a second .fit() with
@@ -238,6 +262,9 @@ class CompetingRiskForest(BaseEstimator):
         X, time, event, n_causes = check_inputs(X, time, event)
         self.n_causes_ = n_causes
         self.n_features_in_ = X.shape[1]
+        self._resolved_sampsize_ = self._resolve_sampsize(X.shape[0])
+        # OOB rows exist when sampling is not a full-data swor draw.
+        self._oob_available_ = self.samptype == "swr" or self._resolved_sampsize_ < X.shape[0]
         max_features = self._resolve_max_features(self.n_features_in_)
 
         if self.cause_weights is not None:
@@ -255,7 +282,7 @@ class CompetingRiskForest(BaseEstimator):
             self._fit_reference(X, time, event, max_features)
         else:
             self._fit_default(X, time, event, max_features)
-        if self.bootstrap:
+        if self._oob_available_:
             self._X_train_oob_ = X
             self._y_train_oob_ = Surv.from_arrays(event=event, time=time)
         else:
@@ -449,9 +476,9 @@ class CompetingRiskForest(BaseEstimator):
             )
         rng = np.random.RandomState(self.random_state)
         # Pre-derive per-tree "stream B" RNGs for rfsrc_aligned mode. In numpy mode
-        # the per-tree RNG is seeded inside the loop (interleaved with bootstrap
-        # draw) to preserve the historical RNG consumption order; changing that
-        # order would change bootstrap indices even when rng_mode is numpy.
+        # the per-tree RNG is seeded inside the loop (interleaved with the per-tree
+        # sample draw) to preserve the historical RNG consumption order; changing
+        # that order would change the sampled indices even when rng_mode is numpy.
         rfsrc_tree_rngs: list | None = None
         if self._rng_mode_eff_ == "rfsrc_aligned":
             if self.random_state is None:
@@ -465,10 +492,11 @@ class CompetingRiskForest(BaseEstimator):
             rfsrc_tree_rngs = [AlignedRng(int(s)) for s in seeds_b]
 
         prepared = []
-        # Bootstrap draws always use numpy MT in both modes (stream A alignment is
-        # empirically a ~1.5% effect on cross-lib gap; see bootstrap_aligned_spike).
-        # Keeping bootstrap on numpy lets rng_mode='rfsrc_aligned' isolate the
-        # stream-B contribution (mtry + nsplit candidate subsetting).
+        # Per-tree sample draws always use numpy MT in both modes (stream A
+        # alignment is empirically a ~1.5% effect on cross-lib gap; see
+        # bootstrap_aligned_spike). Keeping sampling on numpy lets
+        # rng_mode='rfsrc_aligned' isolate the stream-B contribution
+        # (mtry + nsplit candidate subsetting).
         for i in range(self.n_estimators):
             idx, oob = self._sample_indices(rng, n)
             if rfsrc_tree_rngs is not None:
@@ -489,7 +517,7 @@ class CompetingRiskForest(BaseEstimator):
         # bootstrap="by.user", samp=<this matrix> for cross-lib paired fits.
         # Only populated under equivalence="rfsrc" to keep pickle size bounded
         # for users who don't need cross-lib parity.
-        if self.equivalence == "rfsrc" and self.bootstrap:
+        if self.equivalence == "rfsrc" and self._oob_available_:
             self.inbag_ = np.column_stack(
                 [np.bincount(idx, minlength=n).astype(np.int32) for idx, _, _ in prepared]
             )
@@ -537,18 +565,53 @@ class CompetingRiskForest(BaseEstimator):
         # coarser splits → different best-split decisions → non-identical trees.
         return "rfsrc_aligned", None, None
 
-    def _sample_indices(self, rng: np.random.RandomState, n: int) -> tuple[np.ndarray, np.ndarray]:
-        """Draw bootstrap and out-of-bag indices for one tree.
+    def _resolve_sampsize(self, n: int) -> int:
+        """Resolve ``sampsize`` to a concrete per-tree row count for ``n`` rows.
 
-        Returns (idx, oob). If ``bootstrap=False``, idx is ``arange(n)`` and
-        oob is empty.
+        ``None`` -> ``round(0.632 * n)`` for ``"swor"`` (rfsrc default
+        ``sampsize = x * .632``) or ``n`` for ``"swr"``. A ``float`` in
+        ``(0, 1]`` is a fraction of ``n``; an ``int`` is an absolute count;
+        a ``callable(n) -> int`` mirrors rfsrc's functional form. The result
+        is clamped to ``[1, n]`` for ``"swor"`` (cannot draw more unique rows
+        than exist) and to ``>= 1`` for ``"swr"``.
         """
-        if self.bootstrap:
-            idx = rng.choice(n, size=n, replace=True)
-            oob = np.setdiff1d(np.arange(n), idx, assume_unique=False)
+        s = self.sampsize
+        if s is None:
+            size = n if self.samptype == "swr" else round(0.632 * n)
+        elif callable(s):
+            size = int(s(n))
+        elif isinstance(s, bool):  # guard: bool is an int subclass
+            raise ValueError(f"sampsize must be int/float/callable/None; got bool {s!r}")
+        elif isinstance(s, float):
+            if not (0.0 < s <= 1.0):
+                raise ValueError(f"float sampsize must be in (0, 1]; got {s!r}")
+            size = round(s * n)
+        elif isinstance(s, (int, np.integer)):
+            size = int(s)
         else:
-            idx = np.arange(n)
-            oob = np.empty(0, dtype=np.int64)
+            raise ValueError(f"sampsize must be int/float/callable/None; got {s!r}")
+        if size < 1:
+            raise ValueError(f"resolved sampsize must be >= 1; got {size} (n={n})")
+        if self.samptype == "swor":
+            size = min(size, n)
+        return size
+
+    def _sample_indices(self, rng: np.random.RandomState, n: int) -> tuple[np.ndarray, np.ndarray]:
+        """Draw in-bag and out-of-bag indices for one tree.
+
+        Returns ``(idx, oob)``. A full-``n`` ``"swor"`` draw uses every row
+        once in original order without consuming the RNG (so it stays
+        bit-identical to rfSRC's ``samp=matrix(1L, ...)``) and yields an
+        empty OOB set.
+        """
+        size = self._resolved_sampsize_
+        if self.samptype == "swr":
+            idx = rng.choice(n, size=size, replace=True)
+        elif size >= n:  # full-data swor: every row once, deterministic
+            return np.arange(n), np.empty(0, dtype=np.int64)
+        else:
+            idx = rng.choice(n, size=size, replace=False)
+        oob = np.setdiff1d(np.arange(n), idx, assume_unique=False)
         return idx, oob
 
     def predict_cif(self, X, times=None) -> np.ndarray:
@@ -685,20 +748,24 @@ class CompetingRiskForest(BaseEstimator):
 
         For each training row, averages cause-specific integrated CHF over
         only the trees where that row was out-of-bag. Mirrors rfSRC's
-        ``predict$predicted.oob[, cause]`` convention. Requires
-        ``bootstrap=True`` at fit time.
+        ``predict$predicted.oob[, cause]`` convention. Requires an OOB set,
+        i.e. ``samptype="swr"`` or ``samptype="swor"`` with ``sampsize < n``.
 
         Rows in-bag for every tree (probability ~0.37**n_estimators, i.e.
         vanishingly small for n_estimators >= 100) get a risk of 0.
         """
         check_is_fitted(self, "trees_")
-        if not self.bootstrap:
-            raise ValueError("predict_oob_risk needs bootstrap=True at fit time")
+        _OOB_REQUIRES = (
+            "OOB prediction needs out-of-bag rows — fit with samptype='swr' "
+            "or samptype='swor' with sampsize < n"
+        )
+        if not getattr(self, "_oob_available_", False):
+            raise ValueError(f"predict_oob_risk: {_OOB_REQUIRES}")
         if cause < 1 or cause > self.n_causes_:
             raise ValueError(f"cause={cause} out of range [1, {self.n_causes_}]")
         X_train = getattr(self, "_X_train_oob_", None)
         if X_train is None:
-            raise ValueError("training cache missing — refit the forest with bootstrap=True")
+            raise ValueError(f"training cache missing — refit ({_OOB_REQUIRES})")
         from comprisk._importance import _ensemble_oob_predictions
 
         bin_edges = getattr(self, "bin_edges_", None)
@@ -715,8 +782,8 @@ class CompetingRiskForest(BaseEstimator):
         """OOB Harrell C-index on the training set for ``cause``.
 
         Computed against the cached training outcomes using the OOB
-        integrated-CHF risk from :meth:`predict_oob_risk`. Requires
-        ``bootstrap=True`` at fit time.
+        integrated-CHF risk from :meth:`predict_oob_risk`. Requires an OOB
+        set (``samptype="swr"`` or ``"swor"`` with ``sampsize < n``).
         """
         risk = self.predict_oob_risk(cause=cause)
         time, event = unpack_structured_y(self._y_train_oob_)
@@ -776,7 +843,8 @@ class CompetingRiskForest(BaseEstimator):
 
         * **OOB Breiman** (``X_eval=None`` and ``y_eval=None``): scored on
           the cached training data using the Uno IPCW C-index over each
-          tree's out-of-bag rows. Requires ``bootstrap=True`` at fit time.
+          tree's out-of-bag rows. Requires an OOB set (``samptype="swr"``
+          or ``"swor"`` with ``sampsize < n``).
         * **Held-out**: standard sklearn permutation importance with a
           per-cause Wolbers-C-index scorer.
 
@@ -807,7 +875,8 @@ class CompetingRiskForest(BaseEstimator):
         Raises
         ------
         ValueError
-            OOB mode requires ``bootstrap=True`` at fit time.
+            OOB mode requires an OOB set (``samptype="swr"`` or ``"swor"``
+            with ``sampsize < n``).
         TypeError
             Held-out mode requires ``y_eval`` to be a structured array with
             ``time`` and ``event`` fields.

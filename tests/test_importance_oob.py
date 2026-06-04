@@ -207,10 +207,12 @@ def test_compute_importance_no_args_routes_to_oob():
     assert "composite_vimp" in df.columns
 
 
-def test_compute_importance_oob_requires_bootstrap_true():
+def test_compute_importance_oob_requires_oob():
     X, t, e = _toy(n=200, p=4)
-    forest = CompetingRiskForest(n_estimators=10, random_state=42, bootstrap=False).fit(X, t, e)
-    with pytest.raises(ValueError, match="bootstrap=True"):
+    forest = CompetingRiskForest(
+        n_estimators=10, random_state=42, samptype="swor", sampsize=1.0
+    ).fit(X, t, e)
+    with pytest.raises(ValueError, match="out-of-bag rows"):
         forest.compute_importance(random_state=42)
 
 

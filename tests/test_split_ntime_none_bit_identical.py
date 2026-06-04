@@ -18,6 +18,7 @@ baseline. History:
   - Surv y_train_oob field order: ``70efbe29..`` / 14801527 bytes (0 byte delta, struct layout swap — ``_y_train_oob_`` field order changed from ``[("time", float64), ("event", int64)]`` to sksurv-canonical ``[("event", int64), ("time", float64)]`` after the ``Surv.from_arrays`` simplification)
   - SUN-42 time-grid fix:         ``ff50915f..`` / 14801551 bytes (+24, ``_time_grid_max_eff_`` int added as fitted attr by ``_resolve_equivalence``; tree-building unchanged on default path)
   - SUN-44 package rename:        ``b07aa92c..`` / 14801551 bytes (+0, package renamed ``crforest`` → ``comprisk``; both are 8 chars so the qualified class names embedded in the pickle change content but not size — digest only)
+  - SUN-83 samptype/sampsize:     ``74866704..`` / 14801611 bytes (+60, ``bootstrap`` bool dropped; ``samptype``/``sampsize`` ctor attrs + ``_resolved_sampsize_``/``_oob_available_`` fitted attrs added. Ctor pins ``samptype="swr"`` (the pre-SUN-83 ``bootstrap=True`` default, same ``rng.choice`` draw) so the trees are bit-identical to the prior anchor — the delta is purely the new object schema, not tree-building.)
 
 Future changes that affect ``split_ntime=None`` tree-building behavior
 will drift this digest and flag for investigation.
@@ -32,8 +33,8 @@ import numpy as np
 
 from comprisk import CompetingRiskForest
 
-ANCHOR_SHA256 = "b07aa92c25aaa8e72bf4c05a2437d94a7f22847ff5a11f8e2ca35898a2fc587d"
-ANCHOR_PICKLE_BYTES = 14801551
+ANCHOR_SHA256 = "748667046b9a5947784091f7d737a2595ce091e04d6b9a94ab8b0192f53dd9a4"
+ANCHOR_PICKLE_BYTES = 14801611
 
 
 def test_split_ntime_none_matches_anchor_digest() -> None:
@@ -52,6 +53,10 @@ def test_split_ntime_none_matches_anchor_digest() -> None:
         mode="default",
         split_ntime=None,
         device="cpu",
+        # Pin swr (= the pre-SUN-83 bootstrap=True default) so this digest stays
+        # anchored to tree-building behavior under split_ntime=None, independent
+        # of the SUN-83 sampling-default change (swr full-n -> swor 0.632n).
+        samptype="swr",
     ).fit(X, time, event)
     blob = pickle.dumps(forest, protocol=pickle.HIGHEST_PROTOCOL)
     digest = hashlib.sha256(blob).hexdigest()

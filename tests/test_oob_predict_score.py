@@ -17,13 +17,14 @@ def _toy(n=200, p=4, seed=0, n_causes=2):
     return X, time, event
 
 
-def _fit(n=200, p=4, n_estimators=20, bootstrap=True, seed=0):
+def _fit(n=200, p=4, n_estimators=20, samptype="swr", sampsize=None, seed=0):
     X, time, event = _toy(n=n, p=p, seed=seed)
     forest = CompetingRiskForest(
         n_estimators=n_estimators,
         max_depth=4,
         min_samples_leaf=10,
-        bootstrap=bootstrap,
+        samptype=samptype,
+        sampsize=sampsize,
         random_state=seed,
         n_jobs=1,
     )
@@ -42,9 +43,9 @@ def test_predict_oob_risk_shape_and_dtype():
     assert finite.all(), f"non-finite OOB risks: {(~finite).sum()} rows"
 
 
-def test_predict_oob_risk_requires_bootstrap():
-    forest, _X, _time, _event = _fit(bootstrap=False)
-    with pytest.raises(ValueError, match="bootstrap=True"):
+def test_predict_oob_risk_requires_oob():
+    forest, _X, _time, _event = _fit(samptype="swor", sampsize=1.0)
+    with pytest.raises(ValueError, match="out-of-bag rows"):
         forest.predict_oob_risk(cause=1)
 
 
@@ -95,7 +96,7 @@ def test_oob_score_matches_external_concordance():
         assert actual == pytest.approx(expected, rel=0, abs=1e-12)
 
 
-def test_oob_score_requires_bootstrap():
-    forest, _X, _time, _event = _fit(bootstrap=False)
-    with pytest.raises(ValueError, match="bootstrap=True"):
+def test_oob_score_requires_oob():
+    forest, _X, _time, _event = _fit(samptype="swor", sampsize=1.0)
+    with pytest.raises(ValueError, match="out-of-bag rows"):
         forest.oob_score(cause=1)

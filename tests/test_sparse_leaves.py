@@ -177,7 +177,7 @@ def test_pickle_size_regression_small_fixture() -> None:
         random_state=0,
         n_jobs=1,
         equivalence="rfsrc",
-        bootstrap=True,
+        samptype="swr",
     )
     rfsrc_forest.fit(X, time=time, event=event)
     rfsrc_pkl = pickle.dumps(rfsrc_forest)

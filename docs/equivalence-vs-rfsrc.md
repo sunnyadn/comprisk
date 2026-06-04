@@ -37,9 +37,9 @@ Holding the data constant and removing all sources of randomness, do
 the two tree-construction + CIF-estimation kernels produce the same
 output?
 
-**Yes on 2 of 4 gate datasets at full deterministic config** (`bootstrap=False`,
-`max_features=p`, `nsplit=0`, `n_estimators=1`, `split_ntime=None`,
-rfSRC `ntime=0`):
+**Yes on 2 of 4 gate datasets at full deterministic config**
+(`samptype="swor", sampsize=1.0`, `max_features=p`, `nsplit=0`,
+`n_estimators=1`, `split_ntime=None`, rfSRC `ntime=0`):
 
 | dataset    | `cross_p95_cif` at G cell | note |
 |------------|---------------------------|------|
@@ -459,7 +459,8 @@ dominate.
   is the canonical reproduction recipe.
 
 - **If you need permutation VIMP**: call `forest.compute_importance()`
-  with no args on a forest fit with `bootstrap=True`. This runs
+  with no args on a forest fit with an out-of-bag set (the default
+  `samptype="swor"`, or `samptype="swr"`). This runs
   per-tree OOB Breiman permutation, scoring features by the C-index
   drop on integrated-CIF (rfSRC mortality) ensemble OOB predictions.
   Algorithm matches `randomForestSRC::vimp(importance="permute")`

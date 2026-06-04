@@ -323,9 +323,12 @@ def _compute_importance_oob_impl(
     with a thread pool because the inner predict layer is itself joblib-
     parallel; nesting two process pools would oversubscribe the machine.
     """
-    # Bootstrap-only path: OOB scoring needs an out-of-bag set per tree.
-    if not forest.bootstrap:
-        raise ValueError("OOB importance scoring needs bootstrap=True at fit time")
+    # OOB scoring needs an out-of-bag set per tree.
+    if not getattr(forest, "_oob_available_", False):
+        raise ValueError(
+            "OOB importance scoring needs out-of-bag rows — fit with "
+            "samptype='swr' or samptype='swor' with sampsize < n"
+        )
     cached_X = getattr(forest, "_X_train_oob_", None)
     if cached_X is None:
         raise RuntimeError("forest has no cached training data; refit with a current build")

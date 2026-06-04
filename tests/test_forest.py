@@ -65,7 +65,8 @@ def test_different_seeds_give_different_forests():
 def test_oob_indices_complement_bootstrap_indices():
     X, time, event = _make_synthetic_cr(n=40)
     n = len(X)
-    f = CompetingRiskForest(n_estimators=4, random_state=0).fit(X, time, event)
+    # samptype="swr" exercises the with-replacement draw this test reconstructs.
+    f = CompetingRiskForest(n_estimators=4, random_state=0, samptype="swr").fit(X, time, event)
 
     # Each OOB set is a valid subset of [0, n) with no duplicates
     for oob in f.oob_indices_:
@@ -203,9 +204,11 @@ def test_max_features_sqrt_default():
     assert f.predict_cif(X).shape[1] == 2
 
 
-def test_no_bootstrap_uses_full_sample():
+def test_full_data_swor_uses_full_sample():
     X, time, event = _make_synthetic_cr()
-    f = CompetingRiskForest(n_estimators=3, random_state=0, bootstrap=False).fit(X, time, event)
+    f = CompetingRiskForest(n_estimators=3, random_state=0, samptype="swor", sampsize=1.0).fit(
+        X, time, event
+    )
     for oob in f.oob_indices_:
         assert len(oob) == 0
 

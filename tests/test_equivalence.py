@@ -109,7 +109,8 @@ def test_equivalence_deterministic_lossless():
 
     f_def = CompetingRiskForest(
         n_estimators=1,
-        bootstrap=False,
+        samptype="swor",
+        sampsize=1.0,
         max_features=None,
         mode="default",
         random_state=0,
@@ -117,7 +118,8 @@ def test_equivalence_deterministic_lossless():
     ).fit(X, time, event)
     f_ref = CompetingRiskForest(
         n_estimators=1,
-        bootstrap=False,
+        samptype="swor",
+        sampsize=1.0,
         max_features=None,
         mode="reference",
         random_state=0,

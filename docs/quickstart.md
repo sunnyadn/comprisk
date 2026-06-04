@@ -222,8 +222,10 @@ Two flavours, both returning a `pandas.DataFrame` with columns
 ### OOB Breiman (default — no eval set needed)
 
 ```python
+# Default samptype="swor", sampsize=0.632n leaves ~37% of rows out-of-bag
+# per tree, which OOB importance needs. (samptype="swr" also works.)
 forest = CompetingRiskForest(
-    n_estimators=200, bootstrap=True, random_state=42
+    n_estimators=200, random_state=42
 ).fit(X, time, event)
 
 vimp_oob = forest.compute_importance(random_state=42)
@@ -272,7 +274,7 @@ Note on rfSRC compatibility: this implements the paper's forest-averaged
 threshold (Section 3); `randomForestSRC::max.subtree` defaults to a
 tree-averaged threshold, so the threshold *scalar* differs. Per-feature
 mean minimal depth values are bit-equivalent under matched fit config
-(`equivalence='rfsrc', bootstrap=False, min_samples_split=2*nodesize,
+(`equivalence='rfsrc', samptype='swor', sampsize=1.0, min_samples_split=2*nodesize,
 min_samples_leaf=1, max_depth=None`).
 
 ## 7. TreeSHAP explanations

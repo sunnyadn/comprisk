@@ -180,7 +180,8 @@ class CompetingRiskForest(BaseEstimator):
         max_features: str | int | float = "sqrt",
         n_bins: int = 256,
         time_grid: int | array-like = 200,  # int = n points, array = custom
-        bootstrap: bool = True,
+        samptype: str = "swor",  # "swor" (without replacement) or "swr"
+        sampsize: int | float | callable | None = None,  # None -> 0.632n (swor) / n (swr)
         oob_score: bool = False,
         n_jobs: int = -1,
         random_state: int | None = None,

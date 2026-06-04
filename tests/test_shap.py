@@ -153,7 +153,7 @@ def test_shap_agrees_with_oob_vimp_top3():
     if not np.any(event == 2):
         event[1] = 2
 
-    f = CompetingRiskForest(n_estimators=20, random_state=7, max_depth=6, bootstrap=True).fit(
+    f = CompetingRiskForest(n_estimators=20, random_state=7, max_depth=6, samptype="swr").fit(
         X, time, event
     )
 
