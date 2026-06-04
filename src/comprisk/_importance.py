@@ -41,6 +41,10 @@ from comprisk.metrics import (
     concordance_index_uno_cr,
 )
 
+# Shared error suffix for OOB-only operations (also imported by forest.py).
+# Tests match on the "out-of-bag rows" substring.
+_OOB_REQUIREMENT = "out-of-bag rows — fit with samptype='swr' or samptype='swor' with sampsize < n"
+
 __all__ = [
     "_assemble_df",
     "_compute_importance_impl",
@@ -325,10 +329,7 @@ def _compute_importance_oob_impl(
     """
     # OOB scoring needs an out-of-bag set per tree.
     if not getattr(forest, "_oob_available_", False):
-        raise ValueError(
-            "OOB importance scoring needs out-of-bag rows — fit with "
-            "samptype='swr' or samptype='swor' with sampsize < n"
-        )
+        raise ValueError(f"OOB importance scoring needs {_OOB_REQUIREMENT}")
     cached_X = getattr(forest, "_X_train_oob_", None)
     if cached_X is None:
         raise RuntimeError("forest has no cached training data; refit with a current build")

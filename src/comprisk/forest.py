@@ -15,7 +15,7 @@ from sklearn.utils.validation import check_is_fitted
 from comprisk._binning import apply_bins, fit_bin_edges
 from comprisk._gpu_detect import detect_cuda
 from comprisk._hist_tree import build_tree_hist, predict_tree_hist, predict_tree_hist_chf
-from comprisk._importance import _compute_importance_impl
+from comprisk._importance import _OOB_REQUIREMENT, _compute_importance_impl
 from comprisk._shap import shap_values as _shap_values_impl
 from comprisk._sklearn_compat import (
     Surv,
@@ -578,10 +578,10 @@ class CompetingRiskForest(BaseEstimator):
         s = self.sampsize
         if s is None:
             size = n if self.samptype == "swr" else round(0.632 * n)
+        elif isinstance(s, bool):  # guard first: bool is an int subclass
+            raise ValueError(f"sampsize must be int/float/callable/None; got bool {s!r}")
         elif callable(s):
             size = int(s(n))
-        elif isinstance(s, bool):  # guard: bool is an int subclass
-            raise ValueError(f"sampsize must be int/float/callable/None; got bool {s!r}")
         elif isinstance(s, float):
             if not (0.0 < s <= 1.0):
                 raise ValueError(f"float sampsize must be in (0, 1]; got {s!r}")
@@ -755,17 +755,13 @@ class CompetingRiskForest(BaseEstimator):
         vanishingly small for n_estimators >= 100) get a risk of 0.
         """
         check_is_fitted(self, "trees_")
-        _OOB_REQUIRES = (
-            "OOB prediction needs out-of-bag rows — fit with samptype='swr' "
-            "or samptype='swor' with sampsize < n"
-        )
         if not getattr(self, "_oob_available_", False):
-            raise ValueError(f"predict_oob_risk: {_OOB_REQUIRES}")
+            raise ValueError(f"predict_oob_risk needs {_OOB_REQUIREMENT}")
         if cause < 1 or cause > self.n_causes_:
             raise ValueError(f"cause={cause} out of range [1, {self.n_causes_}]")
         X_train = getattr(self, "_X_train_oob_", None)
         if X_train is None:
-            raise ValueError(f"training cache missing — refit ({_OOB_REQUIRES})")
+            raise ValueError(f"training cache missing — refit; needs {_OOB_REQUIREMENT}")
         from comprisk._importance import _ensemble_oob_predictions
 
         bin_edges = getattr(self, "bin_edges_", None)
