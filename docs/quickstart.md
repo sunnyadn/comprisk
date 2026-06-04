@@ -274,9 +274,10 @@ Note on rfSRC compatibility: comprisk's **default config does not
 numerically match** `randomForestSRC` here, and that's by design — comprisk
 ships its own sensible defaults and treats full rfSRC parity as the opt-in
 `equivalence='rfsrc'` path. Two distinct gaps: (1) rfSRC's *default*
-threshold is tree-averaged (`max.subtree(conservative=FALSE)`) while this
-implements the paper's recommended forest-averaging (Section 3) — though the
-two forest-averaged *formulas* are numerically identical; (2) under default
+threshold is tree-averaged (`max.subtree(conservative=FALSE)`) while this uses
+forest-averaging (`conservative=TRUE`) — the authors designate neither as
+"recommended", and the two forest-averaged *formulas* are numerically
+identical; (2) under default
 config the libraries grow different-sized trees, and the threshold is
 geometry-derived, so the *scalar* shifts with tree size. Variable **rankings**
 still agree (Spearman 1.0 on follic). For numeric/per-feature alignment, fit
