@@ -928,6 +928,7 @@ class CompetingRiskForest(BaseEstimator):
         self,
         threshold: str = "md",
         *,
+        aggregation: str = "forest",
         return_extra: bool = False,
     ):
         """Ishwaran-style minimal-depth variable selection.
@@ -945,9 +946,16 @@ class CompetingRiskForest(BaseEstimator):
         Parameters
         ----------
         threshold : {"md"}, default "md"
-            Selection threshold method. Only forest-averaged ``"md"`` (the
-            paper's recommendation, Ishwaran et al. 2010, JASA, Section 3)
-            is supported in v0.3.0.
+            Selection threshold rule. Only mean-minimal-depth ``"md"`` is
+            supported.
+        aggregation : {"forest", "tree"}, default "forest"
+            How the null threshold is aggregated across trees. ``"forest"``
+            (default) averages the node-count geometry first, then computes
+            E[md] once (Ishwaran et al. 2010 Section 3; = rfSRC
+            ``conservative=TRUE``). ``"tree"`` computes E[md] per tree then
+            averages (= rfSRC's default ``conservative=FALSE``, minus its
+            ad-hoc ``-0.5`` guard). Rankings are unaffected; only the scalar
+            threshold shifts. See :func:`compute_minimal_depth` for details.
         return_extra : bool, default False
             If True, additionally include ``min_depth_q25``,
             ``min_depth_q75``, ``frac_trees_used`` columns.
@@ -963,14 +971,17 @@ class CompetingRiskForest(BaseEstimator):
         sklearn.exceptions.NotFittedError
             If the forest has not been fitted.
         ValueError
-            If ``threshold`` is not ``"md"``.
+            If ``threshold`` is not ``"md"`` or ``aggregation`` is invalid.
 
         Notes
         -----
-        The threshold uses the paper's recommended forest-averaging (Section 3),
-        not tree-averaged E[md_T]. rfSRC defaults to tree-averaged aggregation,
-        so numeric threshold values may differ from rfSRC even with
-        ``equivalence='rfsrc'``.
+        The default ``aggregation="forest"`` follows Ishwaran et al. 2010 JASA
+        Section 3 (also 2011 SADM Definition 2): average the geometry across
+        trees, then compute E[md] once. The 2010 paper uses *only* this; the
+        tree-averaged variant is a later randomForestSRC software addition and
+        its default (``conservative=FALSE``). Pass ``aggregation="tree"`` to
+        switch. Numeric threshold values may differ from a default rfSRC run
+        even with ``equivalence='rfsrc'``.
         """
         check_is_fitted(self, "trees_")
         from comprisk._minimal_depth import compute_minimal_depth
@@ -978,6 +989,7 @@ class CompetingRiskForest(BaseEstimator):
         return compute_minimal_depth(
             self,
             threshold=threshold,
+            aggregation=aggregation,
             return_extra=return_extra,
         )
 

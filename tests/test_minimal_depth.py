@@ -355,3 +355,54 @@ def test_rfsrc_var_select_match_follic():
         atol=1e-9,
         err_msg=(f"mean_min_depth diverged:\n  got: {got_md}\n  exp: {exp_md}"),
     )
+
+
+# --------------------------------------------------------------------------- #
+# aggregation: forest-averaged (default) vs tree-averaged (SUN-83 follow-up)   #
+# --------------------------------------------------------------------------- #
+
+
+def test_aggregation_default_is_forest():
+    """Default and aggregation='forest' are identical; 'forest' is the default."""
+    forest = _fit(seed=0)
+    df_default = forest.minimal_depth()
+    df_forest = forest.minimal_depth(aggregation="forest")
+    assert df_default["threshold"].iloc[0] == df_forest["threshold"].iloc[0]
+    np.testing.assert_array_equal(df_default["feature"].values, df_forest["feature"].values)
+
+
+def test_aggregation_tree_matches_mean_of_per_tree_thresholds():
+    """aggregation='tree' = mean over trees of each tree's own E[D] threshold."""
+    from comprisk._minimal_depth import (
+        _ishwaran_expected_md,
+        _tree_averaged_threshold,
+        _walk_min_depth,
+    )
+
+    forest = _fit(seed=1)
+    p = forest.n_features_in_
+    walks = [_walk_min_depth(t, p) for t in forest.trees_]
+    expected = float(
+        np.mean([_ishwaran_expected_md(w.internal_nodes_per_depth, w.max_depth, p) for w in walks])
+    )
+    assert _tree_averaged_threshold(walks, p) == pytest.approx(expected)
+    # And the public path exposes that same scalar in the `threshold` column.
+    df_tree = forest.minimal_depth(aggregation="tree")
+    assert df_tree["threshold"].iloc[0] == pytest.approx(expected)
+
+
+def test_aggregation_tree_preserves_schema_and_ranking():
+    """Switching aggregation changes only the scalar threshold, not the ranking."""
+    forest = _fit(seed=2)
+    df_forest = forest.minimal_depth(aggregation="forest")
+    df_tree = forest.minimal_depth(aggregation="tree")
+    assert list(df_tree.columns) == ["feature", "mean_min_depth", "threshold", "selected"]
+    # mean_min_depth (and hence the ranking) is independent of the threshold rule.
+    np.testing.assert_array_equal(df_forest["feature"].values, df_tree["feature"].values)
+    np.testing.assert_allclose(df_forest["mean_min_depth"].values, df_tree["mean_min_depth"].values)
+
+
+def test_aggregation_invalid_raises():
+    forest = _fit(seed=0)
+    with pytest.raises(ValueError, match="aggregation must be 'forest' or 'tree'"):
+        forest.minimal_depth(aggregation="bogus")

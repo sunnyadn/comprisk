@@ -13,6 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `forest.minimal_depth(aggregation=...)` — choose how the selection threshold
+  is aggregated across trees. `"forest"` (default) is the forest-averaged
+  construction of Ishwaran et al. 2010 JASA Section 3 (average the node-count
+  geometry, then compute E[md] once); `"tree"` computes E[md] per tree then
+  averages, matching randomForestSRC's default (`max.subtree(conservative=FALSE)`),
+  minus rfSRC's ad-hoc `-0.5` liberal guard, which is not replicated. The
+  forest-averaged default is unchanged — only the scalar threshold differs
+  between the two; variable rankings do not.
+
 ### Changed
 
 - **Breaking (pre-1.0): `CompetingRiskForest` replaces the `bootstrap`

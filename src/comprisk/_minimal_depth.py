@@ -31,6 +31,7 @@ __all__ = [
     "WalkResult",
     "_forest_averaged_threshold",
     "_ishwaran_expected_md",
+    "_tree_averaged_threshold",
     "_walk_min_depth",
     "compute_minimal_depth",
 ]
@@ -169,12 +170,22 @@ def _ishwaran_expected_md(
 
 
 def _forest_averaged_threshold(walk_results: list[WalkResult], n_features: int) -> float:
-    """Threshold = E[D*v] computed under the paper's recommended forest-averaging.
+    """Threshold = E[D*v], the expected minimal depth under the null, from
+    forest-averaged node counts.
 
-    Per Ishwaran et al. (2010, JASA, Section 3): "in place of Dv we used D*v,
-    a random variable with distribution (6), but with node counts l_d replaced
-    by forest-averaged estimates l_bar*_d ... let D_bar be the average tree
-    depth of the forest. Then D*v in {0, 1, ..., D_bar}".
+    Construction (Ishwaran et al. 2010 JASA, Section 3; restated as Definition 2
+    in Ishwaran et al. 2011 SADM): a variable is "noisy" if its forest-averaged
+    minimal depth exceeds the mean of the null minimal-depth distribution. That
+    mean is evaluated once from the forest-averaged node-count profile
+    ``l_bar*_d`` and the average tree depth ``D_bar`` — i.e. average the geometry
+    first, then compute E[D] once (as opposed to averaging per-tree thresholds).
+
+    The 2010 paper uses *only* this forest-averaged threshold (Section 3); a
+    tree-averaged variant is a later randomForestSRC software addition, exposed
+    as ``max.subtree(conservative=FALSE)`` and made the rfSRC DEFAULT (it runs
+    slightly larger). comprisk follows the paper's construction; neither the
+    paper nor rfSRC labels one as "recommended". (Measured on follic:
+    forest-averaged 1.800 < tree-averaged 1.822, matching the rfSRC docs.)
 
     Implementation:
     1. l_bar*_d = mean across trees of L_d (count of internal nodes at depth d).
@@ -202,27 +213,70 @@ def _forest_averaged_threshold(walk_results: list[WalkResult], n_features: int) 
     return _ishwaran_expected_md(L_bar, D_bar, n_features)
 
 
+def _tree_averaged_threshold(walk_results: list[WalkResult], n_features: int) -> float:
+    """Threshold = mean over trees of each tree's own E[D*v] (tree-averaging).
+
+    The opposite aggregation order to :func:`_forest_averaged_threshold`:
+    compute the expected null minimal depth *per tree* from that tree's own
+    node-count profile and depth, then average those per-tree thresholds.
+    Because E[D] is nonlinear in the node-count profile, this generally
+    differs from the forest-averaged value (Jensen).
+
+    This is the aggregation randomForestSRC uses for
+    ``max.subtree(conservative=FALSE)`` (its default). Note rfSRC additionally
+    applies a ``-0.5`` "liberal" guard to that value; comprisk does not
+    replicate that ad-hoc adjustment (it is not in Ishwaran et al. 2010), so
+    this returns the plain tree-averaged threshold.
+    """
+    if not walk_results:
+        return 0.0
+    per_tree = [
+        _ishwaran_expected_md(wr.internal_nodes_per_depth, wr.max_depth, n_features)
+        for wr in walk_results
+    ]
+    return float(np.mean(per_tree))
+
+
 def compute_minimal_depth(
     forest,
     *,
     threshold: str = "md",
+    aggregation: str = "forest",
     return_extra: bool = False,
 ) -> pd.DataFrame:
     """Ishwaran-style minimal-depth variable selection.
 
-    Implements the forest-averaged threshold method described in Ishwaran
-    et al. (2010, JASA, Section 3): per-variable minimal depth is averaged
-    empirically across trees, and the selection threshold is E[D*v] computed
-    once from the forest-averaged node-count vector l_bar*_d and average
-    tree depth D_bar.
+    Per-variable minimal depth is averaged empirically across trees; a variable
+    is selected when its forest-averaged minimal depth is at or below the
+    expected null minimal depth (Ishwaran et al. 2010, JASA, Section 3).
 
     Parameters
     ----------
     forest : CompetingRiskForest
         Fitted forest (``trees_`` populated).
     threshold : {"md"}, default "md"
-        Selection threshold method. Only forest-averaged ``"md"`` (the
-        paper's recommendation) is supported in v0.3.0.
+        Selection threshold rule. Only mean-minimal-depth ``"md"`` is supported.
+    aggregation : {"forest", "tree"}, default "forest"
+        How the expected null minimal depth is aggregated across trees.
+
+        * ``"forest"`` (default) — *forest-averaged*: average the node-count
+          geometry across trees (``l_bar*_d``, ``D_bar``), then compute the
+          expected minimal depth once. This is the construction in Ishwaran
+          et al. (2010) Section 3, and equals randomForestSRC's
+          ``max.subtree(conservative=TRUE)``.
+        * ``"tree"`` — *tree-averaged*: compute the expected minimal depth per
+          tree from each tree's own geometry, then average. This is the
+          aggregation randomForestSRC uses by default
+          (``max.subtree(conservative=FALSE)``). Note rfSRC additionally
+          applies a ``-0.5`` "liberal" guard to that value which comprisk does
+          **not** replicate (it is an ad-hoc software adjustment, not in the
+          paper), so ``"tree"`` here is the plain tree-averaged threshold.
+
+        Because the expected minimal depth is nonlinear in the node-count
+        profile, the two differ (Jensen); ``"forest"`` is the more stable,
+        paper-faithful default. Variable *rankings* are unaffected by the
+        choice — only the scalar threshold (hence the selected set near the
+        boundary) shifts.
     return_extra : bool, default False
         If True, append ``min_depth_q25``, ``min_depth_q75``,
         ``frac_trees_used`` columns for diagnostic plots.
@@ -240,8 +294,9 @@ def compute_minimal_depth(
     node counts. The threshold *scalar* still differs from a default rfSRC run
     for two reasons, neither of which is the averaging formula:
 
-    1. rfSRC's *default* is ``conservative=FALSE``, a different (tree-averaged,
-       "liberal") threshold — not the forest-averaged one this implements.
+    1. rfSRC *defaults* to tree-averaging (``conservative=FALSE``); the
+       forest-averaged default here corresponds to rfSRC ``conservative=TRUE``
+       (pass ``aggregation="tree"`` to switch comprisk to tree-averaging).
     2. Under non-equivalence config the two libraries grow different-sized trees
        (comprisk's are shallower — ~21 vs ~33 internal nodes/tree on follic), and
        the threshold is geometry-derived, so it shifts with tree size. This
@@ -255,6 +310,8 @@ def compute_minimal_depth(
         raise ValueError(
             f"threshold must be 'md' (got {threshold!r}); other methods are not yet supported."
         )
+    if aggregation not in ("forest", "tree"):
+        raise ValueError(f"aggregation must be 'forest' or 'tree'; got {aggregation!r}")
 
     p = forest.n_features_in_
     feature_names = forest._importance_feature_names()
@@ -266,7 +323,10 @@ def compute_minimal_depth(
     walk_results = [_walk_min_depth(tree, p) for tree in trees]
     md_matrix = np.stack([wr.min_depth_per_feature for wr in walk_results], axis=0)
     mean_md = md_matrix.mean(axis=0)
-    thr = _forest_averaged_threshold(walk_results, p)
+    if aggregation == "forest":
+        thr = _forest_averaged_threshold(walk_results, p)
+    else:
+        thr = _tree_averaged_threshold(walk_results, p)
     selected = mean_md <= thr
 
     data: dict = {
