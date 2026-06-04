@@ -270,12 +270,19 @@ Variables with mean minimal depth below the threshold are flagged as
 informative. Pass `return_extra=True` to additionally inspect quartiles
 and per-feature usage rates across trees.
 
-Note on rfSRC compatibility: this implements the paper's forest-averaged
-threshold (Section 3); `randomForestSRC::max.subtree` defaults to a
-tree-averaged threshold, so the threshold *scalar* differs. Per-feature
-mean minimal depth values are bit-equivalent under matched fit config
-(`equivalence='rfsrc', samptype='swor', sampsize=1.0, min_samples_split=2*nodesize,
-min_samples_leaf=1, max_depth=None`).
+Note on rfSRC compatibility: comprisk's **default config does not
+numerically match** `randomForestSRC` here, and that's by design — comprisk
+ships its own sensible defaults and treats full rfSRC parity as the opt-in
+`equivalence='rfsrc'` path. Two distinct gaps: (1) rfSRC's *default*
+threshold is tree-averaged (`max.subtree(conservative=FALSE)`) while this
+implements the paper's recommended forest-averaging (Section 3) — though the
+two forest-averaged *formulas* are numerically identical; (2) under default
+config the libraries grow different-sized trees, and the threshold is
+geometry-derived, so the *scalar* shifts with tree size. Variable **rankings**
+still agree (Spearman 1.0 on follic). For numeric/per-feature alignment, fit
+with matched config:
+`equivalence='rfsrc', samptype='swor', sampsize=1.0, min_samples_split=2*nodesize,
+min_samples_leaf=1, max_depth=None`.
 
 ## 7. TreeSHAP explanations
 

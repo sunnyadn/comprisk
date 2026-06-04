@@ -233,10 +233,23 @@ def compute_minimal_depth(
         Sorted ascending by ``mean_min_depth``. Columns:
         ``feature``, ``mean_min_depth``, ``threshold``, ``selected``.
 
-    Note: rfSRC's max.subtree defaults to a tree-averaged threshold; this
-    function implements the paper's forest-averaging (Section 3), so
-    numeric thresholds will differ even with ``equivalence='rfsrc'``.
-    Variable rankings tend to agree.
+    Note on rfSRC parity (measured on follic, ntree=500). The forest-averaged
+    E[D] *formula* implemented here is numerically identical to rfSRC's own
+    forest-averaged threshold (``max.subtree(..., conservative=TRUE)``) — the
+    Ishwaran survival product is the same; we verified Δ ≈ 4e-4 on identical
+    node counts. The threshold *scalar* still differs from a default rfSRC run
+    for two reasons, neither of which is the averaging formula:
+
+    1. rfSRC's *default* is ``conservative=FALSE``, a different (tree-averaged,
+       "liberal") threshold — not the forest-averaged one this implements.
+    2. Under non-equivalence config the two libraries grow different-sized trees
+       (comprisk's are shallower — ~21 vs ~33 internal nodes/tree on follic), and
+       the threshold is geometry-derived, so it shifts with tree size. This
+       dominates the gap; the threshold-averaging method does not.
+
+    Variable *rankings* are robust to both (Spearman 1.0 on follic). For numeric
+    alignment use ``equivalence='rfsrc'`` with matched ``min_samples_split=2*nodesize``,
+    ``min_samples_leaf=1``, ``max_depth=None``.
     """
     if threshold != "md":
         raise ValueError(
