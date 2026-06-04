@@ -11,7 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > `from crforest import …` was the supported form for those versions. See
 > the 0.3.1 entry below for the migration recipe.
 
-## [Unreleased]
+## [0.6.0] — 2026-06-04
+
+Aligns per-tree sampling with randomForestSRC and adds finer control over
+minimal-depth variable selection. **Breaking (pre-1.0):** the
+`CompetingRiskForest(bootstrap=...)` boolean is removed in favour of
+rfsrc-style `samptype` / `sampsize`, and the default per-tree sample changes
+from full bootstrap to without-replacement 0.632·n (see migration below).
+Also corrects the penalized Fine-Gray SCAD/MCP proximal update.
 
 ### Added
 
@@ -44,6 +51,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `"swor"` with `sampsize < n` — rather than the old `bootstrap=True`.
   The default `swor` 0.632n leaves ~37% OOB, so OOB importance works
   out of the box.
+
+### Fixed
+
+- `PenalizedFineGrayRegression`: the SCAD/MCP proximal (firm-thresholding)
+  update now uses Breheny & Huang's general-`v` form (Eq. 3.7) instead of the
+  `v = 1` special case, correcting the coefficient path when the per-coordinate
+  curvature `v` ≠ 1.
 
 ### Notes
 
