@@ -65,7 +65,7 @@ set**. Evidence flow (measure → localize → intervene):
 
 1. **Winner feature agrees at root** on every seed on every dataset
    directly observed via the root-level feat_stat_CR traces
-   ([`validation/alignment/rank_flip_diagnostic.py`](../validation/alignment/rank_flip_diagnostic.py)).
+   ([`validation/alignment/rank_flip_diagnostic.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/rank_flip_diagnostic.py)).
    No feature-rank flip at the root.
 2. **Per-feature stat dev depends on feature type**: 0.0%
    bit-identical on hd (binary/ordinal features → integer-only
@@ -110,7 +110,7 @@ set**. Evidence flow (measure → localize → intervene):
     **discretization mismatch**, not numerical noise.
 
 - **Cascade directly walked**
-  ([`validation/alignment/cascade_diagnostic.py`](../validation/alignment/cascade_diagnostic.py)):
+  ([`validation/alignment/cascade_diagnostic.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/cascade_diagnostic.py)):
   fits the same single-tree config in both libs, extracts per-node
   (depth, size, winner_feat, left-size) in DFS order, and walks
   both sequences synchronously. At each pair where (depth, size)
@@ -151,7 +151,7 @@ set**. Evidence flow (measure → localize → intervene):
 
 - **Falsification test — grid_mismatch directly confirmed as
   dominant**
-  ([`validation/alignment/grid_mismatch_falsification.py`](../validation/alignment/grid_mismatch_falsification.py)):
+  ([`validation/alignment/grid_mismatch_falsification.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/grid_mismatch_falsification.py)):
   re-ran synthetic F-cell (ntree=1, bootstrap=F, nsplit=0, mtry=p,
   min_samples_split=30 / rfSRC nodesize=15, split_ntime=None,
   rfSRC ntime=0, 10 seeds) with comprisk in ``mode="reference"``
@@ -231,10 +231,10 @@ uv run --extra maintainer python -m validation.alignment.cascade_diagnostic \
 uv run --extra maintainer python -m validation.alignment.grid_mismatch_falsification \
     --seeds 10
 ```
-Sources: [`validation/alignment/tiebreak_diagnostic.py`](../validation/alignment/tiebreak_diagnostic.py),
-[`validation/alignment/rank_flip_diagnostic.py`](../validation/alignment/rank_flip_diagnostic.py),
-[`validation/alignment/cascade_diagnostic.py`](../validation/alignment/cascade_diagnostic.py),
-[`validation/alignment/grid_mismatch_falsification.py`](../validation/alignment/grid_mismatch_falsification.py).
+Sources: [`validation/alignment/tiebreak_diagnostic.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/tiebreak_diagnostic.py),
+[`validation/alignment/rank_flip_diagnostic.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/rank_flip_diagnostic.py),
+[`validation/alignment/cascade_diagnostic.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/cascade_diagnostic.py),
+[`validation/alignment/grid_mismatch_falsification.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/grid_mismatch_falsification.py).
 
 ### Tier 3 — production statistical equivalence
 
@@ -244,12 +244,12 @@ least as tight as each library's own seed-to-seed variance?
 
 **Yes, on all four gate datasets.** The gate contract
 (`apply_tolerance` in
-[`validation/alignment/equivalence_gate.py`](../validation/alignment/equivalence_gate.py))
+[`validation/alignment/equivalence_gate.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/equivalence_gate.py))
 declares `overall_pass` if `cross_p95 ≤ max(within_cr_p95,
 within_rf_p95)` for both CIF and risk metrics, across 20 paired seeds.
 
 Measured on `commit 35b005b` at production config (see
-[`validation/alignment/strict_alignment.py`](../validation/alignment/strict_alignment.py)
+[`validation/alignment/strict_alignment.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/strict_alignment.py)
 for the variant without time-grid coarsening, which yields
 equivalent numbers):
 
@@ -299,7 +299,7 @@ paired (0,1), (2,3), …, 9 within-lib pairs per library:
 Cross-lib C-index differences are 2.7× to 13× smaller than each
 library's own within-lib paired-seed variance. 4/4 PASS noise-floor
 on C-index as well. Reproduce with
-[`validation.alignment.cindex_from_cache`](../validation/alignment/cindex_from_cache.py)
+[`validation.alignment.cindex_from_cache`](https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/cindex_from_cache.py)
 against the cached equivalence-gate cells.
 
 **Advisory (hard cap)**: a legacy heuristic `cross_p95 ≤ 0.05`
@@ -320,7 +320,7 @@ Where does it come from, given that the kernels are provably
 equivalent (Tier 1)?
 
 **Config sweep A → G** on `hd` with 10 seeds (see
-[`validation/alignment/tiebreak_diagnostic.py`](../validation/alignment/tiebreak_diagnostic.py)):
+[`validation/alignment/tiebreak_diagnostic.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/tiebreak_diagnostic.py)):
 
 | cell | bootstrap | mtry  | nsplit | ntree | split_ntime | hd cross_p95_cif |
 |------|-----------|-------|--------|-------|-------------|------------------|
@@ -346,7 +346,7 @@ equivalent (Tier 1)?
   hd (follic sees a small additional effect).
 
 **Definitive decomposition — the Z cell** (see
-[`validation/alignment/z_cell_spike.py`](../validation/alignment/z_cell_spike.py)):
+[`validation/alignment/z_cell_spike.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/z_cell_spike.py)):
 use rfSRC's `bootstrap="by.user"` with an externally-supplied in-bag
 matrix built from comprisk's numpy RNG, plus `mtry=p`, `nsplit=0`,
 `ntree=500`, `split_ntime=None`, and rfSRC `ntime=0`. This removes
@@ -407,7 +407,7 @@ out" — the two libraries converge to **slightly different ensemble
 limits** under independent RNG.
 
 **Bootstrap alignment alone** is insufficient
-([`bootstrap_aligned_spike.py`](../validation/alignment/bootstrap_aligned_spike.py)):
+([`bootstrap_aligned_spike.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/bootstrap_aligned_spike.py)):
 feeding rfSRC the identical per-tree in-bag matrix that comprisk used
 closes only `~1.5%` of the hd gap. Bootstrap-RNG independence is a
 red herring at production config; mtry and nsplit independence
@@ -453,9 +453,9 @@ dominate.
   properties; see the 4-dataset Phase 1c table below). Cost: ~2-3×
   slower fit than the default numpy RNG path (still order-of-magnitude
   faster than rfSRC on continuous-feature data; see
-  [`mode_vs_perf_aligned.py`](../validation/alignment/mode_vs_perf_aligned.py)).
+  [`mode_vs_perf_aligned.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/mode_vs_perf_aligned.py)).
   The validation spike
-  [`rfsrc_full_aligned_spike.py`](../validation/alignment/rfsrc_full_aligned_spike.py)
+  [`rfsrc_full_aligned_spike.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/rfsrc_full_aligned_spike.py)
   is the canonical reproduction recipe.
 
 - **If you need permutation VIMP**: call `forest.compute_importance()`
@@ -487,16 +487,16 @@ evidence — each one independent, none relying on elimination:
 |---|------|--------|--------------|
 | 1 | Algorithm vs rfSRC source (line-by-line) | match | `importance.c`, `importancePerm.c`, `survival.c:413-417`, `survivalE.c:200-1066`, `rfsrcUtil.c:376-411` |
 | 2 | Naive Python reference equivalence | atol=1e-12 | `test_oob_vimp_matches_naive_reference_implementation` |
-| 3 | **Synthetic data with planted signal** | AUC=1.0 at β≥0.5; graceful degradation; signal/noise VIMP ratio 50× | [`vimp_sanity.py`](../validation/alignment/vimp_sanity.py) |
-| 4 | C-index function vs rfSRC `getConcordanceIndexOriginal` | \|Δ\| < 0.0005 | [`_refc_compare.py`](../validation/alignment/_refc_compare.py) |
-| 5 | Ensemble OOB mortality cell-by-cell vs rfSRC `predicted.oob` | Spearman 0.97-1.000 | [`mortality_cellwise.py`](../validation/alignment/mortality_cellwise.py) |
-| 6 | **Per-tree unpermuted mortality vs rfSRC `predict(get.tree=t)`** | median Spearman = 1.000 | [`per_tree_mortality.py`](../validation/alignment/per_tree_mortality.py) |
-| 7 | **Per-tree permuted mortality (same canonical π through both libs)** | median Spearman = 1.000 | [`per_tree_permuted_mortality.py`](../validation/alignment/per_tree_permuted_mortality.py) |
-| 8 | Per-tree mortality across 6 seeds (1, 2, 3, 5, 7, 10) | median Spearman = 1.000 each; 78-95% trees bit-identical | [`per_tree_seeds_sweep.py`](../validation/alignment/per_tree_seeds_sweep.py) |
-| 9 | Within-lib seed-to-seed pairwise Spearman | pbc/follic/hd/synthetic all ≥0.58 (median) | [`vimp_within_stability.py`](../validation/alignment/vimp_within_stability.py) |
-| 10 | ntime grid match (rfSRC `time.interest` vs comprisk `unique_times_`) | bit-identical 133-point grid on hd | [`_ntime_grid_check.py`](../validation/alignment/_ntime_grid_check.py) |
-| 11 | Permutation-only noise floor at fixed forest | median Spearman +0.83 (45 pairs from 10 perm seeds) | [`permutation_only_noise.py`](../validation/alignment/permutation_only_noise.py) |
-| 12 | **Replay rfSRC's actual per-tree permutations through comprisk's trees** | **Pearson = 1.0000, mean\|Δ\| < 0.001 C-index units; Spearman ≥ 0.94 (run-to-run float noise from rfSRC OpenMP atomic accumulations flips ties at sub-1e-3 vimp magnitudes)** | [`vimp_perm_replay.py`](../validation/alignment/vimp_perm_replay.py) + `_rfsrc_patches/importancePerm.c.patch` |
+| 3 | **Synthetic data with planted signal** | AUC=1.0 at β≥0.5; graceful degradation; signal/noise VIMP ratio 50× | [`vimp_sanity.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/vimp_sanity.py) |
+| 4 | C-index function vs rfSRC `getConcordanceIndexOriginal` | \|Δ\| < 0.0005 | [`_refc_compare.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/_refc_compare.py) |
+| 5 | Ensemble OOB mortality cell-by-cell vs rfSRC `predicted.oob` | Spearman 0.97-1.000 | [`mortality_cellwise.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/mortality_cellwise.py) |
+| 6 | **Per-tree unpermuted mortality vs rfSRC `predict(get.tree=t)`** | median Spearman = 1.000 | [`per_tree_mortality.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/per_tree_mortality.py) |
+| 7 | **Per-tree permuted mortality (same canonical π through both libs)** | median Spearman = 1.000 | [`per_tree_permuted_mortality.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/per_tree_permuted_mortality.py) |
+| 8 | Per-tree mortality across 6 seeds (1, 2, 3, 5, 7, 10) | median Spearman = 1.000 each; 78-95% trees bit-identical | [`per_tree_seeds_sweep.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/per_tree_seeds_sweep.py) |
+| 9 | Within-lib seed-to-seed pairwise Spearman | pbc/follic/hd/synthetic all ≥0.58 (median) | [`vimp_within_stability.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/vimp_within_stability.py) |
+| 10 | ntime grid match (rfSRC `time.interest` vs comprisk `unique_times_`) | bit-identical 133-point grid on hd | [`_ntime_grid_check.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/_ntime_grid_check.py) |
+| 11 | Permutation-only noise floor at fixed forest | median Spearman +0.83 (45 pairs from 10 perm seeds) | [`permutation_only_noise.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/permutation_only_noise.py) |
+| 12 | **Replay rfSRC's actual per-tree permutations through comprisk's trees** | **Pearson = 1.0000, mean\|Δ\| < 0.001 C-index units; Spearman ≥ 0.94 (run-to-run float noise from rfSRC OpenMP atomic accumulations flips ties at sub-1e-3 vimp magnitudes)** | [`vimp_perm_replay.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/vimp_perm_replay.py) + `_rfsrc_patches/importancePerm.c.patch` |
 
   Axis 12 is decisive. We instrumented `rfSRC::importancePerm.c` to emit
   the per-(tree, feature, OOB sample) permutation each tree actually
@@ -569,7 +569,7 @@ evidence — each one independent, none relying on elimination:
   cross-lib Spearman gap attributed to rfSRC's default `use.uno=TRUE`.
 
   **C-index implementation matches rfSRC.** Per-call alignment via
-  [`uno_cindex_check.py`](../validation/alignment/uno_cindex_check.py)
+  [`uno_cindex_check.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/uno_cindex_check.py)
   (drives rfSRC under `RFSRC_TRACE_UNO=<path>`, parses the trace, feeds
   rfSRC's exported per-call weights into comprisk's `concordance_index_uno_cr`,
   asserts |Δc| < 1e-5 against rfSRC's `numerW/denomW`):
@@ -672,7 +672,7 @@ not simply "matching tree sizes aligns the libraries".
 default config happens to produce good alignment even if the
 mechanism is not fully characterized. If you want the tightest
 alignment, use the defaults exactly as
-[`rfsrc_full_aligned_spike.py`](../validation/alignment/rfsrc_full_aligned_spike.py)
+[`rfsrc_full_aligned_spike.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/rfsrc_full_aligned_spike.py)
 sets them.
 
   **Known caveat**: rfSRC's R-wrapper `get.seed` replaces seeds with

@@ -1,6 +1,6 @@
 # comprisk benchmarks
 
-This is the full benchmark dossier for comprisk. The repo's [README](../README.md)
+This is the full benchmark dossier for comprisk. The repo's [README](https://github.com/sunnyadn/comprisk/blob/main/README.md)
 links here for the detailed tables, methodology, and reproducibility scripts.
 
 All numbers below are **measured**, not extrapolated, except where the
@@ -28,7 +28,7 @@ similarly well. The 14–22× speedup band reflects how rfSRC's OpenMP
 scales with per-core speed: the i7's high-clock P-cores benefit rfSRC
 most, so the gap is smallest there; on slower-per-core HPC silicon the
 gap widens. Reproducible via
-[`validation/comparisons/n75k_path_b.py`](../validation/comparisons/n75k_path_b.py).
+[`validation/comparisons/n75k_path_b.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/comparisons/n75k_path_b.py).
 
 R-on-macOS users hit a separate scenario: rfSRC's OpenMP requires
 rebuilding R against Homebrew gcc/clang, which most Mac R installs lack.
@@ -55,9 +55,9 @@ smaller than CHF's 19.8× on the same HPC silicon because rfSRC's
 per-split exhaustive scan scales with p, and SEER has ~3× fewer
 features (p = 17 vs p = 58); the 10–22× cross-dataset band tracks p
 directly. Reproducible via
-[`validation/comparisons/seer_path_b.py`](../validation/comparisons/seer_path_b.py)
+[`validation/comparisons/seer_path_b.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/comparisons/seer_path_b.py)
 (requires your own SEER Research Data agreement; setup in
-[`validation/comparisons/SEER_README.md`](../validation/comparisons/SEER_README.md)).
+[`validation/comparisons/SEER_README.md`](https://github.com/sunnyadn/comprisk/blob/main/validation/comparisons/SEER_README.md)).
 
 ## Scaling on the synthetic Weibull DGP
 
@@ -98,7 +98,7 @@ surfaces a cause-specific Wolbers concordance of 0.69–0.72 for cause 1
 other mode (`low_memory=False`) restores CHF/survival outputs but OOMs:
 at n = 5k it already peaks at 16.8 GB RSS; at n = 10k it exceeds a 21.5
 GB cap on a 24 GB host. Numbers reproducible via
-[`validation/comparisons/sksurv_oom.py`](../validation/comparisons/sksurv_oom.py).
+[`validation/comparisons/sksurv_oom.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/comparisons/sksurv_oom.py).
 
 ## Scaling (one-sided beyond the paired ranges)
 
@@ -113,7 +113,7 @@ histogram split kernel:
 | n = 1 000 000 (UKB-scale feasibility, on i7) | **63 s** | not measured (rfSRC peak RSS at n = 75 000 already 22.7 GB OMP-on; rfSRC's per-tree storage roughly doubles with n) | not feasible at full output capability |
 
 The n = 1M number reproduces via
-[`validation/spikes/lambda/exp5_paper_scale_bench.py`](../validation/spikes/lambda/exp5_paper_scale_bench.py).
+[`validation/spikes/lambda/exp5_paper_scale_bench.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/spikes/lambda/exp5_paper_scale_bench.py).
 We do not publish a paired number above n ≈ 100 000 because both R and
 Python alternatives are impractical there, not because the comparison
 gets unfavourable.
@@ -133,10 +133,10 @@ proportional to the cohort: n = 100k, ntree = 100 pickles to ~5.0 GB.
 
 | Claim | Script | Cohort access required? |
 |---|---|---|
-| CHF matched-pair (3 hardware rows) | [`validation/comparisons/n75k_path_b.py`](../validation/comparisons/n75k_path_b.py) | Yes — see [`validation/spikes/kappa/exp1_chf_smoke.py`](../validation/spikes/kappa/exp1_chf_smoke.py) for the cohort vendoring step |
-| SEER cross-dataset matched-pair | [`validation/comparisons/seer_path_b.py`](../validation/comparisons/seer_path_b.py) | Yes — own SEER Research Data agreement; setup in [`validation/comparisons/SEER_README.md`](../validation/comparisons/SEER_README.md) |
-| sksurv comparison (4 n rows) | [`validation/comparisons/sksurv_oom.py`](../validation/comparisons/sksurv_oom.py) | No — synthetic DGP |
-| n = 10⁶ scaling | [`validation/spikes/lambda/exp5_paper_scale_bench.py`](../validation/spikes/lambda/exp5_paper_scale_bench.py) | No — synthetic DGP |
+| CHF matched-pair (3 hardware rows) | [`validation/comparisons/n75k_path_b.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/comparisons/n75k_path_b.py) | Yes — see [`validation/spikes/kappa/exp1_chf_smoke.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/spikes/kappa/exp1_chf_smoke.py) for the cohort vendoring step |
+| SEER cross-dataset matched-pair | [`validation/comparisons/seer_path_b.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/comparisons/seer_path_b.py) | Yes — own SEER Research Data agreement; setup in [`validation/comparisons/SEER_README.md`](https://github.com/sunnyadn/comprisk/blob/main/validation/comparisons/SEER_README.md) |
+| sksurv comparison (4 n rows) | [`validation/comparisons/sksurv_oom.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/comparisons/sksurv_oom.py) | No — synthetic DGP |
+| n = 10⁶ scaling | [`validation/spikes/lambda/exp5_paper_scale_bench.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/spikes/lambda/exp5_paper_scale_bench.py) | No — synthetic DGP |
 
 For cross-library equivalence checks (bit-identical to rfSRC at fixed
 seed via `equivalence="rfsrc"`), see

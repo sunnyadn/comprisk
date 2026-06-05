@@ -2,6 +2,7 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/comprisk.svg)](https://pypi.org/project/comprisk/)
 [![CI](https://github.com/sunnyadn/comprisk/actions/workflows/ci.yml/badge.svg)](https://github.com/sunnyadn/comprisk/actions/workflows/ci.yml)
+[![docs](https://img.shields.io/badge/docs-sunnyadn.github.io%2Fcomprisk-blue)](https://sunnyadn.github.io/comprisk/)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.19876282-blue)](https://doi.org/10.5281/zenodo.19876282)
 
 **comprisk** — a Python toolkit for competing risks. Ships a scalable,
