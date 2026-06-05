@@ -407,4 +407,4 @@ production fits.
 - Confidence intervals on VIMP (sklearn's `permutation_importance` reports
   `importances_std`; we surface only `importances_mean` in the DataFrame).
 
-These are tracked for v1.0 / v1.1 — see [`docs/prd.md`](prd.md).
+These are tracked for v1.0 / v1.1 — see the [Roadmap](../README.md#roadmap).

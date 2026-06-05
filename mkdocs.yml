@@ -1,0 +1,81 @@
+site_name: comprisk
+site_description: >-
+  Python toolkit for competing risks — a scalable, scikit-learn-compatible
+  random survival forest plus Fine-Gray, Aalen-Johansen, Gray's test, and
+  cause-specific Cox.
+site_url: https://sunnyadn.github.io/comprisk/
+repo_url: https://github.com/sunnyadn/comprisk
+repo_name: sunnyadn/comprisk
+edit_uri: edit/main/docs/
+
+# docs/internal/ is git-ignored working notes (PRD, planning, sprint specs);
+# keep it out of the published site too.
+exclude_docs: |
+  internal/
+
+theme:
+  name: material
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - content.code.copy
+    - content.code.annotate
+    - search.suggest
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.details
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: numpy
+            show_root_heading: true
+            show_root_full_path: false
+            show_source: false
+            heading_level: 2
+            members_order: source
+            separate_signature: true
+            show_signature_annotations: true
+            signature_crossrefs: true
+            merge_init_into_class: true
+            filters: ["!^_"]
+
+nav:
+  - Home: index.md
+  - Quickstart: quickstart.md
+  - API reference: reference.md
+  - Benchmarks: benchmarks.md
+  - Equivalence vs rfSRC: equivalence-vs-rfsrc.md
+  - References: REFERENCES.md

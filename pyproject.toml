@@ -56,6 +56,10 @@ examples = [
     "marimo>=0.23",
     "matplotlib>=3.8",
 ]
+docs = [
+    "mkdocs-material>=9.5",
+    "mkdocstrings[python]>=0.26",
+]
 maintainer = [
     "rpy2>=3.5",
 ]

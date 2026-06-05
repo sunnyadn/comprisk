@@ -19,32 +19,23 @@ currently endure for competing-risks survival analysis.
 
 ## Highlights
 
-- **The four canonical CR methods, native Python.** `FineGrayRegression`
-  matches `R cmprsk::crr()` β̂ to floating-point noise (max |Δβ| = 1.4e-15
-  on three reference datasets); `robust_se=True` returns the Geskus
-  cluster sandwich agreeing with cmprsk's IPCW-corrected SE to ~3 digits.
-  `CumulativeIncidence` reproduces `cmprsk::cuminc()` to 1e-9 across CIF
-  and variance. `gray_test` reproduces `cmprsk::cuminc()$Tests` to 1e-14.
-  `CauseSpecificCox` matches `survival::coxph(method="breslow")` to 1e-9.
-- **Only native-Python competing-risks RSF.** Cause-specific log-rank
-  splitting + composite CR log-rank, Aalen-Johansen CIF, Nelson-Aalen CHF,
-  Wolbers + Uno IPCW concordance, OOB Breiman VIMP, Ishwaran minimal-depth
-  variable selection, exact TreeSHAP.
-- **CR-aware model evaluation.** `score_cr` reports IPCW time-dependent
-  AUC and Brier score under competing risks, plus integrated AUC / Brier
-  (iAUC, IBS) with bootstrap CIs; `calibration_cr` returns tidy quantile-
-  decile calibration data with per-bin Wilson intervals — one-call
-  replacements for the CR-mode `riskRegression::Score()` / `plotCalibration()`
-  blocks, taking a dict of named candidate models.
+- **The four canonical CR methods, native Python** — Fine-Gray (+ penalized),
+  cause-specific Cox, Aalen-Johansen CIF, and Gray's test, each validated to
+  floating-point tolerances against `cmprsk` / `crrp` / `survival` (parity
+  table [below](#regression-and-non-parametric-models)).
+- **The only native-Python competing-risks RSF** — cause-specific & composite
+  CR log-rank splitting, Aalen-Johansen CIF, Nelson-Aalen CHF, Wolbers + Uno
+  IPCW concordance, OOB Breiman VIMP, Ishwaran minimal depth, exact TreeSHAP.
+- **CR-aware model evaluation** — `score_cr` (IPCW time-dependent AUC/Brier,
+  integrated iAUC/IBS with bootstrap CIs) and `calibration_cr` replace the
+  CR-mode `riskRegression::Score()` / `plotCalibration()` blocks in one call.
 - **10–22× faster than [randomForestSRC](https://cran.r-project.org/package=randomForestSRC)**
-  on real EHR data (CHF 14–22×, SEER 11.6×; full tables in
-  [docs/benchmarks.md](docs/benchmarks.md)), with C ≈ 0.85 on both
-  libraries. ~95× faster than rfSRC built without OpenMP (default R-on-macOS).
-- **Order-of-magnitude faster than [scikit-survival](https://scikit-survival.readthedocs.io/)**
-  (16.6× at n = 5k, 544× at n = 50k), without disabling CIF/CHF outputs.
-- **Bit-identical to randomForestSRC** with `equivalence="rfsrc"` —
-  reproduces the per-tree mtry/nsplit RNG stream for paper-grade
-  reproducibility, sensitivity checks, and rfSRC-baseline migrations.
+  on real EHR data and **16.6–544× faster than [scikit-survival](https://scikit-survival.readthedocs.io/)**
+  (n = 5k → 50k), at matched C ≈ 0.85 and without disabling CIF/CHF
+  outputs ([benchmarks](docs/benchmarks.md)).
+- **Bit-identical to randomForestSRC** with `equivalence="rfsrc"` — reproduces
+  the per-tree mtry/nsplit RNG stream for paper-grade reproducibility and
+  rfSRC-baseline migrations.
 
 ## comprisk vs alternatives
 
@@ -84,21 +75,28 @@ faster only at low feature count today, full rewrite scheduled for v1.1).
 import numpy as np
 from comprisk import CompetingRiskForest
 
-# Toy competing-risks data: 500 subjects, 6 features, 2 causes (+ censoring).
+# Toy competing-risks data *with signal*: cause-1 risk rises with the first
+# two features, cause 2 competes, and some subjects are censored.
 rng = np.random.default_rng(42)
-n = 500
+n = 1000
 X = rng.normal(size=(n, 6))
-time = rng.exponential(2.0, size=n) + 0.1
-event = rng.choice([0, 1, 2], size=n, p=[0.4, 0.4, 0.2])  # 0 = censored
+lp = X[:, 0] + 0.5 * X[:, 1]
+t1 = rng.exponential(np.exp(-lp))          # cause 1 fires sooner when lp is high
+t2 = rng.exponential(2.0, size=n)          # cause 2 (competing)
+tc = rng.exponential(4.0, size=n)          # censoring
+time = np.minimum.reduce([t1, t2, tc])
+event = np.where((t1 <= t2) & (t1 <= tc), 1, np.where(t2 <= tc, 2, 0))  # 0 = censored
 
 # Fit. Defaults: n_estimators=100, max_features="sqrt", logrankCR, n_jobs=-1.
-forest = CompetingRiskForest(n_estimators=100, random_state=42).fit(X, time, event)
+forest = CompetingRiskForest(n_estimators=200, random_state=42).fit(X, time, event)
 
 # Aalen-Johansen cumulative incidence over the forest's chosen time grid.
 cif = forest.predict_cif(X[:5])                       # (5, n_causes, n_times)
 
-# Cause-specific Wolbers concordance.
-print("C-index, cause 1:", forest.score(X, time, event, cause=1))
+# Out-of-bag cause-specific Wolbers concordance — honest (out-of-sample),
+# no held-out split needed. (forest.score(X, ...) would report the optimistic
+# in-sample value.)
+print("OOB C-index, cause 1:", forest.oob_score(cause=1))
 ```
 
 ### Explainability and feature selection
@@ -114,60 +112,34 @@ selected = forest.minimal_depth().query("selected")["feature"].tolist()
 shap, base = forest.shap_values(X[:10])               # (n, p, n_times, n_causes)
 ```
 
-[`examples/shap_explain.py`](examples/shap_explain.py) is an interactive
-[marimo](https://marimo.io) notebook (a plain `.py` file) that walks through
 SHAP additivity, per-cause global importance, and per-subject attribution over
-the time grid, with sliders for the forest size and the subject under
-inspection. Run it with `uv run --extra examples marimo edit examples/shap_explain.py`
-(or `uvx marimo edit --sandbox examples/shap_explain.py` to use the notebook's
-own PEP 723 dependency header).
+the time grid are explored interactively (with sliders) in
+[`examples/shap_explain.py`](examples/shap_explain.py) (marimo).
 
-### Fine-Gray, Aalen-Johansen, Gray's test, and cause-specific Cox
+### Regression and non-parametric models
+
+Beyond the forest, comprisk ships the classical competing-risks toolkit — each
+validated to floating-point tolerances against its reference R package:
 
 ```python
-from comprisk import (
-    FineGrayRegression, CumulativeIncidence, CauseSpecificCox, gray_test,
-)
+from comprisk import FineGrayRegression
 
-# Fine-Gray subdistribution-hazard regression — matches R cmprsk::crr()
-# β̂ to floating-point noise. robust_se=True gives the Geskus cluster
-# sandwich (matches cmprsk's IPCW-corrected SE to ~3 digits).
 fg = FineGrayRegression(cause=1, robust_se=True).fit(X, time=time, event=event)
-print(fg.coef_, fg.se_)
-F = fg.predict_cumulative_incidence(X[:5])            # (5, n_event_times)
-
-# Non-parametric Aalen-Johansen CIF (cmprsk::cuminc parity, optional groups).
-ci = CumulativeIncidence().fit(time=time, event=event, group=group_var)
-est, var = ci.timepoints([1.0, 5.0, 10.0])            # (n_curves, 3)
-
-# Gray's K-sample test for CIFs — matches cmprsk::cuminc()$Tests to 1e-14.
-result = gray_test(time, event, group_var, cause=1)
-print(result.stat, result.pvalue, result.df)
-
-# Cause-specific Cox PH — competing events censored at t_j.
-# Matches survival::coxph(method="breslow") to 1e-9.
-cs = CauseSpecificCox(cause=1).fit(X, time=time, event=event)
+print(fg.coef_, fg.se_)                               # log subdistribution-HRs
 ```
 
-Penalized variable selection for the Fine-Gray model (LASSO / ridge /
-elastic-net / MCP / SCAD) — no equivalent elsewhere in Python:
+| Estimator | Estimates | R parity |
+|---|---|---|
+| `FineGrayRegression` | subdistribution-hazard ratios | `cmprsk::crr()` (β̂ to fp noise) |
+| `PenalizedFineGrayRegression` | LASSO / ridge / EN / MCP / SCAD path | `crrp::crrp()` to ~1e-6 |
+| `CauseSpecificCox` | cause-specific hazard ratios | `survival::coxph()` to 1e-9 |
+| `CumulativeIncidence` | non-parametric Aalen-Johansen CIF | `cmprsk::cuminc()` |
+| `gray_test` | K-sample test for equal CIFs | `cmprsk::cuminc()$Tests` to 1e-14 |
 
-```python
-from comprisk import PenalizedFineGrayRegression
-
-# Cyclic coordinate descent on the IPCW-weighted partial likelihood,
-# warm-started along a 100-point lambda path. cv=K picks lambda by the
-# cross-validated partial-likelihood deviance; coefficients + sandwich SEs
-# match R crrp::crrp() (Fu et al. 2017) along the whole path to ~1e-6.
-pen = PenalizedFineGrayRegression(penalty="lasso", cv=5).fit(X, time=time, event=event)
-print(pen.coef_, pen.lambda_min_, pen.lambda_1se_)
-pen.coef_path_                                        # (p, n_lambda)
-```
-
-Detailed walkthroughs — additivity checks, global SHAP importance, sklearn-
-compatible slicing, performance caveats, rfSRC threshold compatibility — in
-[docs/quickstart.md](docs/quickstart.md), which also covers data format,
-prediction shapes, cross-validation, GPU, and rfSRC migration.
+Worked code for every row — coefficient tables, CIF-by-group plots, the LASSO
+path — is in [`examples/02_regression_models.ipynb`](examples/02_regression_models.ipynb);
+data format, prediction shapes, cross-validation, GPU, and rfSRC migration are
+in [docs/quickstart.md](docs/quickstart.md).
 
 > **scikit-learn drop-in.** `CompetingRiskForest` is a real sklearn
 > estimator (`BaseEstimator`, `clone()`-friendly, picklable).
@@ -207,11 +179,9 @@ in [docs/benchmarks.md](docs/benchmarks.md).
 | CHF (cardio) | 75k × 58 | Apple M4 / i7-14700K / HPC | 5.6–9.4 s | 84.8–207.3 s | **14–22×** |
 | SEER breast (oncology) | 238k × 17 | HPC Xeon Gold 6148 | 7.0 s | 81.6 s | **11.6×** |
 
-Both libraries fit similarly well at every tested workload (HF /
-cancer-specific C ≈ 0.85). The 10–22× cross-dataset band tracks feature
-count: rfSRC's per-split exhaustive scan scales with p, so the gap
-narrows on lower-p cohorts. ~95× speedup vs rfSRC built without OpenMP
-(default R-on-macOS install).
+Both libraries fit similarly well (C ≈ 0.85); the cross-dataset band tracks
+feature count (rfSRC's per-split scan scales with p). ~95× vs rfSRC built
+without OpenMP (the default R-on-macOS install).
 
 **vs scikit-survival, paired on i7-14700K** — synthetic 2-cause Weibull,
 p = 58, both libraries at their best config:
@@ -221,9 +191,9 @@ p = 58, both libraries at their best config:
 | 5 000 | 18.2 s | 1.10 s | **16.6×** |
 | 50 000 | 2935 s (49 min) | 5.40 s | **544×** |
 
-The gap widens super-linearly (sksurv ≈ n^2.2; comprisk ≈ n^0.7).
-comprisk also provides Aalen-Johansen CIF + Nelson-Aalen CHF that
-sksurv `low_memory=True` raises `NotImplementedError` for.
+The gap widens super-linearly (sksurv ≈ n^2.2; comprisk ≈ n^0.7), and comprisk
+still returns the Aalen-Johansen CIF + Nelson-Aalen CHF that sksurv
+`low_memory=True` cannot.
 
 **Scaling on a consumer desktop:** n = 10⁶ in **63 s** on i7-14700K,
 14.5 GB RSS. Reproducible via
@@ -231,15 +201,33 @@ sksurv `low_memory=True` raises `NotImplementedError` for.
 
 ## API
 
-Full parameter list in [`src/comprisk/forest.py`](src/comprisk/forest.py);
-usage by task in [docs/quickstart.md](docs/quickstart.md). Two splitrules
-are available: `logrankCR` (composite competing-risks log-rank, default)
-and `logrank` (cause-specific).
+Full parameter lists in the
+[API reference](https://sunnyadn.github.io/comprisk/reference/); usage by task
+in [docs/quickstart.md](docs/quickstart.md). Two forest splitrules are
+available: `logrankCR` (composite competing-risks log-rank, default) and
+`logrank` (cause-specific).
+
+## Examples
+
+Runnable notebooks in [`examples/`](examples) (rendered with output on GitHub —
+click to view, or open in Colab to run):
+
+- [`01_forest_quickstart.ipynb`](examples/01_forest_quickstart.ipynb)
+  [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sunnyadn/comprisk/blob/main/examples/01_forest_quickstart.ipynb)
+  — fit → predict CIF → out-of-bag scoring → VIMP → minimal-depth selection
+- [`02_regression_models.ipynb`](examples/02_regression_models.ipynb)
+  [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sunnyadn/comprisk/blob/main/examples/02_regression_models.ipynb)
+  — Fine-Gray, cause-specific Cox, Aalen-Johansen by group, Gray's test, penalized Fine-Gray
+- [`shap_explain.py`](examples/shap_explain.py) — interactive
+  [marimo](https://marimo.io) app for TreeSHAP attributions (sliders for forest
+  size and subject); `uv run --extra examples marimo edit examples/shap_explain.py`
 
 ## Documentation
 
+📖 **[Full documentation site](https://sunnyadn.github.io/comprisk/)** — searchable, with autogenerated API reference.
+
 - [Quickstart](docs/quickstart.md) — common tasks with runnable code
-- [PRD](docs/prd.md) — what comprisk aims to be at v1.0
+- [API reference](https://sunnyadn.github.io/comprisk/reference/) — full parameter lists from the docstrings
 - [Equivalence vs rfSRC](docs/equivalence-vs-rfsrc.md) — cross-library validation methodology
 - [References](docs/REFERENCES.md) — algorithmic provenance (Park-Miller, Bays-Durham, Wolbers 2009, Uno 2011, Cole & Hernán 2008, Breiman 2001, Ishwaran 2008/2014, etc.)
 

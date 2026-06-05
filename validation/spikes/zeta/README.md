@@ -1,6 +1,6 @@
 # ζ — Head-to-head fit-wall benchmark vs rfSRC
 
-Spec: `docs/superpowers/specs/2026-04-23-zeta-head-to-head-benchmark-design.md` (gitignored).
+Spec: `docs/internal/superpowers/specs/2026-04-23-zeta-head-to-head-benchmark-design.md` (gitignored).
 
 ## What's here
 
