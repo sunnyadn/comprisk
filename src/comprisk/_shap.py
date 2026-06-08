@@ -23,7 +23,7 @@ import numpy as np
 from sklearn.utils.validation import check_is_fitted
 
 from comprisk._binning import apply_bins
-from comprisk._shap_alg2 import _tree_height, shap_phi_prange
+from comprisk._shap_alg2 import _tree_height, max_path_offset, shap_phi_prange
 from comprisk._tree_flat import FlatTree, flatten_tree
 
 # ---------------------------------------------------------------------------
@@ -192,7 +192,6 @@ def shap_values(
     X_input = np.ascontiguousarray(X_input, dtype=np.float64)
 
     arrays = _build_concat(forest, time_projection, time_aggregate, times_out)
-    cols = n_causes if time_aggregate is not None else n_causes * n_times_out
 
     nthreads = _resolve_threads(n_jobs)
     old_nthreads = numba.get_num_threads()
@@ -209,7 +208,7 @@ def shap_values(
             arrays["leaf_tbl"],
             arrays["node_off"],
             X_input,
-            cols,
+            arrays["cols"],
             n_features,
             arrays["max_offset"],
         )  # (n_samples, n_features, cols)
@@ -229,11 +228,11 @@ def shap_values(
 def _resolve_threads(n_jobs) -> int:
     """Map an ``n_jobs`` value to a numba thread count (clamped to the build max)."""
     maxth = numba.config.NUMBA_NUM_THREADS
-    if n_jobs is None or n_jobs == 1:
+    if n_jobs is None:
         return 1
     if n_jobs == -1:
         return maxth
-    return max(1, min(int(n_jobs), maxth))
+    return max(1, min(int(n_jobs), maxth))  # n_jobs=1 falls through to 1
 
 
 def _reduce_time_axis(arr: np.ndarray, time_aggregate, times_out: np.ndarray) -> np.ndarray:
@@ -243,6 +242,21 @@ def _reduce_time_axis(arr: np.ndarray, time_aggregate, times_out: np.ndarray) ->
     return np.trapezoid(arr, x=times_out, axis=-1)
 
 
+# Kernel-facing dtype for each concatenated array. astype(copy=False) at the end
+# is a no-op when a tree already produced the right dtype, so per-tree casts are
+# unnecessary — only the final concatenate (which copies regardless) is paid.
+_CONCAT_DTYPES = {
+    "feat": np.int64,
+    "split": np.float64,
+    "left": np.int64,
+    "right": np.int64,
+    "is_leaf": np.int8,
+    "leaf_idx": np.int64,
+    "cover": np.float64,
+    "leaf_tbl": np.float64,
+}
+
+
 def _build_concat(forest, time_projection, time_aggregate, times_out) -> dict:
     """Flatten every tree into single concatenated arrays for the prange kernel.
 
@@ -250,21 +264,13 @@ def _build_concat(forest, time_projection, time_aggregate, times_out) -> dict:
     leaves / internal nodes respectively); ``node_off[t]`` is tree ``t``'s root.
     Leaf values are time-projected / aggregated here (per the current call's
     ``times`` / ``time_aggregate``) so the kernel stays oblivious to the time
-    axis.  ``covers`` and the un-projected per-tree ``base`` are cached on the
-    flattened tree across calls.  ``base`` is summed over trees in the returned
-    shape ``(n_times_out, n_causes)`` (or ``(n_causes,)`` when aggregated).
+    axis.  ``covers``, the un-projected per-tree ``base``, and tree height are
+    cached on the flattened tree across calls.  ``base`` is summed over trees in
+    the returned shape ``(n_times_out, n_causes)`` (or ``(n_causes,)`` when
+    aggregated); ``cols`` is the leaf-table width the kernel writes per feature.
     """
-    feats, splits, lefts, rights, isleaf, leafidx, covers_l, lt_l, node_off = (
-        [],
-        [],
-        [],
-        [],
-        [],
-        [],
-        [],
-        [],
-        [],
-    )
+    rows = []  # one dict of per-tree arrays per tree, concatenated at the end
+    node_off = []
     n_off = 0
     l_off = 0
     max_off = 0
@@ -294,43 +300,42 @@ def _build_concat(forest, time_projection, time_aggregate, times_out) -> dict:
             b = time_projection(b)
         if time_aggregate is not None:
             leaf_table = _reduce_time_axis(leaf_table, time_aggregate, times_out)  # (n_leaves, nc)
-            b = _reduce_time_axis(b, time_aggregate, times_out)  # (n_causes,)
-            base = b.copy() if base is None else base + b
+            bt = _reduce_time_axis(b, time_aggregate, times_out)  # (n_causes,)
         else:
             bt = b.T  # (n_times_out, n_causes)
-            base = bt.copy() if base is None else base + bt
+        base = bt.copy() if base is None else base + bt
 
-        n_leaves = leaf_table.shape[0]
-        lt2d = np.ascontiguousarray(leaf_table.reshape(n_leaves, -1), dtype=np.float64)
-        nn = len(flat.is_leaf_flags)
-        ilf = flat.is_leaf_flags.astype(bool)
-        feats.append(flat.features.astype(np.int64))
-        splits.append(flat.split_values.astype(np.float64))
-        lefts.append(np.where(ilf, -1, flat.left_children.astype(np.int64) + n_off))
-        rights.append(np.where(ilf, -1, flat.right_children.astype(np.int64) + n_off))
-        isleaf.append(ilf.astype(np.int8))
-        leafidx.append(np.where(ilf, flat.leaf_idx_of_node.astype(np.int64) + l_off, -1))
-        covers_l.append(covers.astype(np.float64))
-        lt_l.append(lt2d)
+        ilf = flat.is_leaf_flags  # already bool; used as np.where mask and (as int8) by the kernel
+        rows.append(
+            {
+                "feat": flat.features,
+                "split": flat.split_values,
+                "left": np.where(ilf, -1, flat.left_children + n_off),
+                "right": np.where(ilf, -1, flat.right_children + n_off),
+                "is_leaf": ilf,
+                "leaf_idx": np.where(ilf, flat.leaf_idx_of_node + l_off, -1),
+                "cover": covers,
+                "leaf_tbl": leaf_table.reshape(leaf_table.shape[0], -1),
+            }
+        )
         node_off.append(n_off)
-        n_off += nn
-        l_off += n_leaves
-        h = int(_tree_height(flat.left_children, flat.right_children, flat.is_leaf_flags))
-        max_off = max(max_off, (h + 2) * (h + 3) // 2 + 4)
+        n_off += len(ilf)
+        l_off += leaf_table.shape[0]
+        h = getattr(flat, "_shap_height", None)
+        if h is None:
+            h = int(_tree_height(flat.left_children, flat.right_children, flat.is_leaf_flags))
+            flat._shap_height = h
+        max_off = max(max_off, max_path_offset(h))
 
-    return {
-        "feat": np.concatenate(feats),
-        "split": np.concatenate(splits),
-        "left": np.concatenate(lefts),
-        "right": np.concatenate(rights),
-        "is_leaf": np.concatenate(isleaf),
-        "leaf_idx": np.concatenate(leafidx),
-        "cover": np.concatenate(covers_l),
-        "leaf_tbl": np.concatenate(lt_l),
-        "node_off": np.array(node_off, dtype=np.int64),
-        "max_offset": max_off,
-        "base": base,
+    out = {
+        k: np.concatenate([r[k] for r in rows]).astype(dt, copy=False)
+        for k, dt in _CONCAT_DTYPES.items()
     }
+    out["node_off"] = np.array(node_off, dtype=np.int64)
+    out["max_offset"] = max_off
+    out["base"] = base
+    out["cols"] = out["leaf_tbl"].shape[1]
+    return out
 
 
 def _base_value(flat: FlatTree, covers: np.ndarray) -> np.ndarray:

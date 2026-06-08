@@ -277,6 +277,18 @@ def _tree_height(left_children, right_children, is_leaf_flags) -> int:
     return h
 
 
+def max_path_offset(height: int) -> int:
+    """Scratch length for the offset-based path arrays at a given tree height.
+
+    The recursion's per-level offset sequence is triangular in depth
+    (0, 1, 3, 6, ...), so the deepest single root-to-leaf path needs this many
+    slots.  Sizing by node count instead would over-allocate by ~10^4x on a
+    deep, wide tree.  Shared by ``shap_tree_weights`` (recursive reference) and
+    ``_build_concat`` (the prange kernel's scratch).
+    """
+    return (height + 2) * (height + 3) // 2 + 4
+
+
 def shap_tree_weights(
     features: np.ndarray,
     split_values: np.ndarray,
@@ -306,7 +318,7 @@ def shap_tree_weights(
     # with the node count — sizing them by ``n_nodes`` would over-allocate by
     # ~10^4x on a deep, wide tree and dominate the runtime.
     height = int(_tree_height(left_children, right_children, is_leaf_flags))
-    max_offset = (height + 2) * (height + 3) // 2 + 4
+    max_offset = max_path_offset(height)
     path_feature = np.full(max_offset, -1, dtype=np.int64)
     path_z = np.zeros(max_offset, dtype=np.float64)
     path_o = np.zeros(max_offset, dtype=np.float64)
@@ -408,6 +420,13 @@ def shap_phi_prange(
             SPO[0] = 1.0
             SPF[0] = -1
             sp = 1
+            # The EXTEND / unwound-path-sum / UNWIND blocks below are inlined
+            # copies of _extend_path / _unwound_path_sum / _unwind_path. They
+            # are NOT factored out on purpose: the recursive reference passes
+            # offset *slices* into those helpers, but creating slice views every
+            # node visit inside a parallel=True prange body degrades numba's
+            # parallel/alias analysis. Keep the three blocks in sync with the
+            # helpers above if that math ever changes.
             while sp > 0:
                 sp -= 1
                 node = SN[sp]
