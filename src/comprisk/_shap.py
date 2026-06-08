@@ -1,16 +1,19 @@
 """TreeSHAP for cause-specific CIF on comprisk tree ensembles.
 
 Implements Lundberg, Erion & Lee (2018), *Consistent Individualized Feature
-Attribution for Tree Ensembles* (arXiv:1802.03888), Algorithm 2 (O(L·D²)).
-Leaf values are generalised from scalars to ``(n_causes, n_times)`` tensors;
-SHAP is linear in the leaf value, so the recursion only needs to produce the
-*structural* weights — one scalar per ``(leaf, path-feature)`` — and the
-``(n_causes, n_times)`` leaf tensors are multiplied back in with a single
-BLAS matmul per tree:
+Attribution for Tree Ensembles* (arXiv:1802.03888), Algorithm 2 (O(L·D²)),
+with leaf values generalised from scalars to ``(n_causes, n_times)`` CIF
+tensors.
 
-    phi[s] = W[s] @ leaf_table.reshape(n_leaves, n_causes * n_times)
-
-This keeps the ``n_causes * n_times`` factor out of the hot recursion.
+This module is the host orchestration: it flattens all trees into single
+concatenated arrays (``_build_concat``), then calls the parallel kernel
+``shap_phi_prange`` (in ``_shap_alg2``), which runs the iterative
+explicit-stack recursion in ``numba`` ``prange`` over samples and folds each
+leaf's ``(n_causes, n_times)`` value into a per-sample ``phi`` accumulator in
+place.  Each sample is owned by one thread (no cross-thread reduction), so the
+result is bit-identical across thread counts and scales ~linearly with cores.
+``times`` projection and ``time_aggregate`` collapse the leaf time axis here,
+before the kernel, so the hot loop is oblivious to the time grid.
 """
 
 from __future__ import annotations

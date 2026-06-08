@@ -312,13 +312,20 @@ shap_slice = shap[:, :, -1, 0]   # last timepoint, cause 1  (n, p)
 # built). Output shape (n, p, n_causes). "sum" == shap.sum(axis=2) exactly;
 # "trapezoid" is the grid-spacing-aware time integral.
 risk_shap, risk_base = forest.shap_values(X[:10], time_aggregate="sum")
+
+# Threaded over samples (default n_jobs=-1 = all cores). Bit-identical across
+# thread counts; on a many-core node it scales ~linearly with cores.
+shap, base = forest.shap_values(X, n_jobs=-1)
 ```
 
 Backed by Lundberg (2018) Algorithm 2; bit-exact to ``shap.TreeExplainer``
-at any fixed ``(cause, time)`` slice. Wall time scales linearly with
-``n_explain`` and the requested grid width — pass a focused ``times=`` grid
-(clinical horizons) or a ``time_aggregate=`` rather than the default full
-event-time grid.
+at any fixed ``(cause, time)`` slice. The kernel is parallel over samples
+(``n_jobs``, default ``-1``), so wall time scales ~linearly with ``n_explain``
+and inversely with core count — for a large test set, give it a fat
+many-core node rather than sharding the work yourself. Cost is dominated by
+the tree traversal, **not** the time grid: ``times=`` width and
+``time_aggregate=`` barely change wall time (they mainly bound output memory),
+so the lever for speed is cores, not grid size.
 
 As of 0.5.0 this is ~14×+ faster (SUN-74 — the ``n_causes × n_times`` factor
 moved out of the TreeSHAP recursion into one BLAS matmul; deep/wide trees see
