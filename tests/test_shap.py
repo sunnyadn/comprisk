@@ -250,16 +250,65 @@ def test_shap_custom_times_equals_projected_full_grid(mode):
 # ---------------------------------------------------------------------------
 
 
+def test_shap_matches_recursive_reference():
+    """New iterative+prange kernel == retained recursive Algorithm-2 reference.
+
+    Guards the SHAP *values* (not just additivity) against the rewrite. The
+    reference path is the previously-shipped recursive ``shap_tree_weights`` +
+    leaf-table matmul, computed here per tree.
+    """
+    from comprisk._binning import apply_bins
+    from comprisk._shap import _compute_node_covers, _get_flat_and_leaf_counts
+    from comprisk._shap_alg2 import shap_tree_weights
+
+    X, time, event = _make_synthetic_cr(seed=3, n=90)
+    f = CompetingRiskForest(n_estimators=15, random_state=7, max_depth=6).fit(X, time, event)
+    nf, nc, nt = X.shape[1], f.n_causes_, len(f.unique_times_)
+    Xb = apply_bins(X, f.bin_edges_)
+
+    ref = np.zeros((len(X), nf, nt, nc))
+    for tree in f.trees_:
+        flat, lc = _get_flat_and_leaf_counts(tree)
+        cov = _compute_node_covers(
+            flat.is_leaf_flags,
+            flat.left_children,
+            flat.right_children,
+            flat.leaf_idx_of_node,
+            lc,
+        )
+        nl = flat.leaf_table.shape[0]
+        lt2d = np.ascontiguousarray(flat.leaf_table.reshape(nl, nc * nt))
+        W = shap_tree_weights(
+            flat.features,
+            flat.split_values,
+            flat.left_children,
+            flat.right_children,
+            flat.is_leaf_flags,
+            flat.leaf_idx_of_node,
+            cov,
+            Xb,
+            nf,
+            nl,
+        )
+        phi = (W.reshape(len(X) * nf, nl) @ lt2d).reshape(len(X), nf, nc, nt)
+        ref += phi.transpose(0, 1, 3, 2)
+    ref /= len(f.trees_)
+
+    shap, _ = f.shap_values(X)
+    assert np.allclose(shap, ref, atol=1e-12, rtol=0)
+
+
 def test_shap_parallel_matches_serial():
     X, time, event = _make_synthetic_cr(n=120)
     f = CompetingRiskForest(n_estimators=12, random_state=11, max_depth=5, n_jobs=1).fit(
         X, time, event
     )
-    shap_ser, base_ser = f.shap_values(X)
-    f.n_jobs = 4  # same trees, only the cross-tree reduction order changes
-    shap_par, base_par = f.shap_values(X)
-    assert np.allclose(shap_par, shap_ser, atol=1e-10, rtol=1e-10)
-    assert np.allclose(base_par, base_ser, atol=1e-10, rtol=1e-10)
+    shap_ser, base_ser = f.shap_values(X, n_jobs=1)
+    shap_par, base_par = f.shap_values(X, n_jobs=4)
+    # Each sample is owned by exactly one prange thread (no cross-thread
+    # reduction), so the result is bit-identical regardless of thread count.
+    assert np.array_equal(shap_par, shap_ser)
+    assert np.array_equal(base_par, base_ser)
 
 
 # ---------------------------------------------------------------------------

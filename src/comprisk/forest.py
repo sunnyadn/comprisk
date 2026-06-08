@@ -1008,7 +1008,7 @@ class CompetingRiskForest(BaseEstimator):
             )
         return self._feature_importances_cache
 
-    def shap_values(self, X, times=None, *, time_aggregate=None):
+    def shap_values(self, X, *, times=None, time_aggregate=None, n_jobs=-1):
         """TreeSHAP values for cause-specific CIF.
 
         Uses exact polynomial-time TreeSHAP (Lundberg et al. 2018), adapted
@@ -1036,6 +1036,10 @@ class CompetingRiskForest(BaseEstimator):
               on the CIF.
             - ``"trapezoid"`` — trapezoidal integral of ``CIF`` over the same
               grid (grid-spacing aware).
+        n_jobs : int, default=-1
+            Threads for the parallel-over-samples TreeSHAP kernel (``-1`` = all
+            cores, ``None``/``1`` = serial).  Independent of the fit-time
+            ``n_jobs``; the result is bit-identical across thread counts.
 
         Returns
         -------
@@ -1059,7 +1063,7 @@ class CompetingRiskForest(BaseEstimator):
                 sum_d shap_{s,d,t,c} + base_{t,c}
                 approx predict_cif(X_s)_{c,t}
         """
-        return _shap_values_impl(self, X, times=times, time_aggregate=time_aggregate)
+        return _shap_values_impl(self, X, times=times, time_aggregate=time_aggregate, n_jobs=n_jobs)
 
     def _importance_feature_names(self) -> list[str]:
         """Feature names for VIMP output; positional fallback when unset."""

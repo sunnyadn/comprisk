@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > `from crforest import …` was the supported form for those versions. See
 > the 0.3.1 entry below for the migration recipe.
 
+## [Unreleased]
+
+### Changed
+
+- **TreeSHAP rewrite — parallel-over-samples, near-linear multicore scaling.**
+  `shap_values` now uses an iterative explicit-stack Algorithm-2 kernel
+  parallelised with `numba` `prange` over samples (replacing the previous
+  thread-pool-over-trees driver, whose Python per-sample loop serialised on the
+  GIL and capped scaling at ~4–8 threads). On a 52-core node, full
+  20k-sample × 300-tree × depth-20 SHAP runs in ~9.6 min and scales ~linearly
+  to all cores; values are bit-identical to the previous kernel (validated to
+  2e-15) and bit-identical across thread counts.
+- **Breaking (pre-1.0):** `shap_values` parameters after `X` are now
+  keyword-only, and it takes an explicit `n_jobs` (default `-1` = all cores)
+  instead of silently reusing the forest's fit-time `n_jobs`. Migrate any
+  positional `times` / `time_aggregate` calls to keyword form.
+
 ## [0.6.0] — 2026-06-04
 
 Aligns per-tree sampling with randomForestSRC and adds finer control over

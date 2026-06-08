@@ -15,20 +15,13 @@ This keeps the ``n_causes * n_times`` factor out of the hot recursion.
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
-
+import numba
 import numpy as np
 from sklearn.utils.validation import check_is_fitted
 
 from comprisk._binning import apply_bins
-from comprisk._shap_alg2 import shap_tree_weights
+from comprisk._shap_alg2 import _tree_height, shap_phi_prange
 from comprisk._tree_flat import FlatTree, flatten_tree
-
-# Per-batch budget for the transient ``(batch, n_features, n_leaves)`` weight
-# array (and the same-order matmul output).  Sample batching trades a few extra
-# BLAS calls per tree for a bounded scratch footprint under thread parallelism.
-_W_BATCH_BYTES = 128 * 1024 * 1024
-
 
 # ---------------------------------------------------------------------------
 # Tree representation helpers (cover counts, flattening)
@@ -132,7 +125,9 @@ def _compute_node_covers(
 _TIME_AGGREGATORS = ("sum", "trapezoid")
 
 
-def shap_values(forest, X, times=None, *, time_aggregate=None) -> tuple[np.ndarray, np.ndarray]:
+def shap_values(
+    forest, X, *, times=None, time_aggregate=None, n_jobs=-1
+) -> tuple[np.ndarray, np.ndarray]:
     """Compute TreeSHAP values for cause-specific CIF.
 
     Parameters
@@ -147,6 +142,12 @@ def shap_values(forest, X, times=None, *, time_aggregate=None) -> tuple[np.ndarr
     time_aggregate : {None, "sum", "trapezoid"}, default=None
         If set, collapse the time axis to one scalar per cause *before* the
         attribution (see :meth:`CompetingRiskForest.shap_values`).
+    n_jobs : int, default=-1
+        Number of numba threads for the parallel-over-samples kernel.
+        ``-1`` uses all available cores; ``None`` or ``1`` runs single-threaded.
+        Independent of the forest's fit-time ``n_jobs``; the result is
+        bit-identical across thread counts (each sample is computed by exactly
+        one thread, with no cross-thread reduction).
 
     Returns
     -------
@@ -174,8 +175,7 @@ def shap_values(forest, X, times=None, *, time_aggregate=None) -> tuple[np.ndarr
     if X.shape[1] != forest.n_features_in_:
         raise ValueError(f"X has {X.shape[1]} features; expected {forest.n_features_in_}")
 
-    n_samples, n_features = X.shape
-
+    n_features = X.shape[1]
     if times is None:
         times_out = forest.unique_times_
         time_projection = None
@@ -186,110 +186,51 @@ def shap_values(forest, X, times=None, *, time_aggregate=None) -> tuple[np.ndarr
     n_causes = forest.n_causes_
 
     X_input = apply_bins(X, forest.bin_edges_) if forest.mode == "default" else X
+    X_input = np.ascontiguousarray(X_input, dtype=np.float64)
 
-    n_jobs = forest.n_jobs if hasattr(forest, "n_jobs") else 1
-    if n_jobs == -1:
-        import os
+    arrays = _build_concat(forest, time_projection, time_aggregate, times_out)
+    cols = n_causes if time_aggregate is not None else n_causes * n_times_out
 
-        n_jobs = os.cpu_count() or 1
-    elif n_jobs is None:
-        n_jobs = 1
-
-    if time_aggregate is None:
-        out_shape = (n_samples, n_features, n_times_out, n_causes)
-        base_shape = (n_times_out, n_causes)
-    else:
-        out_shape = (n_samples, n_features, n_causes)
-        base_shape = (n_causes,)
-    trees = list(forest.trees_)
-    n_trees = len(trees)
-
-    total_shap = np.zeros(out_shape, dtype=np.float64)
-    total_base = np.zeros(base_shape, dtype=np.float64)
-
-    # Tree-level thread parallelism: threads share memory (no fork/COW overhead)
-    # and the numba weight kernels release the GIL.  Each worker owns a private
-    # accumulator over its slice of trees, so the only cross-tree reduction is
-    # over ``n_jobs`` arrays at the end (not over ``n_trees``).  The first tree
-    # is always done on the calling thread so the numba kernels are compiled
-    # before any worker touches them (concurrent first-compile of a recursive
-    # jitted function can crash the interpreter).
-    _accumulate_tree_shap(
-        trees[0],
-        X_input,
-        n_features,
-        time_projection,
-        time_aggregate,
-        times_out,
-        total_shap,
-        total_base,
-    )
-    rest = trees[1:]
-    if rest and n_jobs > 1:
-        n_workers = min(n_jobs, len(rest))
-        chunks = [rest[w::n_workers] for w in range(n_workers)]
-        with ThreadPoolExecutor(max_workers=n_workers) as executor:
-            futures = [
-                executor.submit(
-                    _chunk_shap,
-                    chunk,
-                    X_input,
-                    n_features,
-                    time_projection,
-                    time_aggregate,
-                    times_out,
-                    out_shape,
-                    base_shape,
-                )
-                for chunk in chunks
-            ]
-            for fut in futures:
-                chunk_shap, chunk_base = fut.result()
-                total_shap += chunk_shap
-                total_base += chunk_base
-    elif rest:
-        for tree in rest:
-            _accumulate_tree_shap(
-                tree,
-                X_input,
-                n_features,
-                time_projection,
-                time_aggregate,
-                times_out,
-                total_shap,
-                total_base,
-            )
-
-    total_shap /= n_trees
-    total_base /= n_trees
-    return total_shap, total_base
-
-
-def _chunk_shap(
-    trees,
-    X_input: np.ndarray,
-    n_features: int,
-    time_projection,
-    time_aggregate,
-    times_out: np.ndarray,
-    out_shape: tuple,
-    base_shape: tuple,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Sum SHAP / base over a subset of trees into a fresh accumulator pair."""
-    acc_shap = np.zeros(out_shape, dtype=np.float64)
-    acc_base = np.zeros(base_shape, dtype=np.float64)
-    for tree in trees:
-        _accumulate_tree_shap(
-            tree,
+    nthreads = _resolve_threads(n_jobs)
+    old_nthreads = numba.get_num_threads()
+    numba.set_num_threads(nthreads)
+    try:
+        phi = shap_phi_prange(
+            arrays["feat"],
+            arrays["split"],
+            arrays["left"],
+            arrays["right"],
+            arrays["is_leaf"],
+            arrays["leaf_idx"],
+            arrays["cover"],
+            arrays["leaf_tbl"],
+            arrays["node_off"],
             X_input,
+            cols,
             n_features,
-            time_projection,
-            time_aggregate,
-            times_out,
-            acc_shap,
-            acc_base,
-        )
-    return acc_shap, acc_base
+            arrays["max_offset"],
+        )  # (n_samples, n_features, cols)
+    finally:
+        numba.set_num_threads(old_nthreads)
+
+    n_trees = len(forest.trees_)
+    phi /= n_trees
+    base = arrays["base"] / n_trees
+    if time_aggregate is not None:
+        shap = phi.reshape(len(X), n_features, n_causes)  # (n, F, n_causes)
+    else:
+        shap = phi.reshape(len(X), n_features, n_causes, n_times_out).transpose(0, 1, 3, 2)
+    return shap, base
+
+
+def _resolve_threads(n_jobs) -> int:
+    """Map an ``n_jobs`` value to a numba thread count (clamped to the build max)."""
+    maxth = numba.config.NUMBA_NUM_THREADS
+    if n_jobs is None or n_jobs == 1:
+        return 1
+    if n_jobs == -1:
+        return maxth
+    return max(1, min(int(n_jobs), maxth))
 
 
 def _reduce_time_axis(arr: np.ndarray, time_aggregate, times_out: np.ndarray) -> np.ndarray:
@@ -299,90 +240,94 @@ def _reduce_time_axis(arr: np.ndarray, time_aggregate, times_out: np.ndarray) ->
     return np.trapezoid(arr, x=times_out, axis=-1)
 
 
-def _accumulate_tree_shap(
-    tree,
-    X_input: np.ndarray,
-    n_features: int,
-    time_projection,
-    time_aggregate,
-    times_out: np.ndarray,
-    acc_shap: np.ndarray,
-    acc_base: np.ndarray,
-) -> None:
-    """Add one tree's SHAP / base contribution into ``acc_shap`` / ``acc_base``.
+def _build_concat(forest, time_projection, time_aggregate, times_out) -> dict:
+    """Flatten every tree into single concatenated arrays for the prange kernel.
 
-    The structural TreeSHAP recursion fills a ``(batch, n_features, n_leaves)``
-    weight tensor; the ``(n_causes, n_times)`` leaf values are folded in by a
-    single ``W @ leaf_table_2d`` matmul.  When ``times`` is a small subset the
-    leaf table is projected onto those columns *first*, and when
-    ``time_aggregate`` is set the time axis is collapsed (sum / trapezoid)
-    first too — both shrink the matmul's right operand.  ``covers`` and the
-    un-projected ``base`` are cached on the (flattened) tree so repeated
-    ``shap_values`` calls don't recompute them.
+    ``left``/``right``/``leaf_idx`` are pre-offset to *global* indices (and -1 at
+    leaves / internal nodes respectively); ``node_off[t]`` is tree ``t``'s root.
+    Leaf values are time-projected / aggregated here (per the current call's
+    ``times`` / ``time_aggregate``) so the kernel stays oblivious to the time
+    axis.  ``covers`` and the un-projected per-tree ``base`` are cached on the
+    flattened tree across calls.  ``base`` is summed over trees in the returned
+    shape ``(n_times_out, n_causes)`` (or ``(n_causes,)`` when aggregated).
     """
-    flat, leaf_counts = _get_flat_and_leaf_counts(tree)
-    if leaf_counts is None:
-        raise RuntimeError("Could not determine leaf sample counts for SHAP cover computation.")
-
-    covers = getattr(flat, "_shap_covers", None)
-    if covers is None:
-        covers = _compute_node_covers(
-            flat.is_leaf_flags,
-            flat.left_children,
-            flat.right_children,
-            flat.leaf_idx_of_node,
-            leaf_counts,
-        )
-        flat._shap_covers = covers
-
-    base = getattr(flat, "_shap_base", None)
-    if base is None:
-        base = _base_value(flat, covers)  # (n_causes, n_times_full)
-        flat._shap_base = base
-
-    leaf_table = flat.leaf_table  # (n_leaves, n_causes, n_times_full)
-    if time_projection is not None:
-        leaf_table = time_projection(leaf_table)
-        base = time_projection(base)
-
-    if time_aggregate is not None:
-        leaf_table = _reduce_time_axis(
-            leaf_table, time_aggregate, times_out
-        )  # (n_leaves, n_causes)
-        base = _reduce_time_axis(base, time_aggregate, times_out)  # (n_causes,)
-        acc_base += base
-    else:
-        acc_base += base.T
-
-    n_leaves, n_causes = leaf_table.shape[0], leaf_table.shape[1]
-    cols = n_causes if leaf_table.ndim == 2 else n_causes * leaf_table.shape[2]
-    leaf_table_2d = np.ascontiguousarray(leaf_table.reshape(n_leaves, cols))
-
-    n_samples = len(X_input)
-    batch_size = max(1, min(n_samples, _W_BATCH_BYTES // max(1, n_features * n_leaves * 8)))
-    for start in range(0, n_samples, batch_size):
-        end = min(start + batch_size, n_samples)
-        b = end - start
-        weights = shap_tree_weights(
-            flat.features,
-            flat.split_values,
-            flat.left_children,
-            flat.right_children,
-            flat.is_leaf_flags,
-            flat.leaf_idx_of_node,
-            covers,
-            X_input[start:end],
-            n_features,
-            n_leaves,
-        )  # (b, n_features, n_leaves)
-        phi = weights.reshape(b * n_features, n_leaves) @ leaf_table_2d  # (b*F, cols)
-        if time_aggregate is not None:
-            acc_shap[start:end] += phi.reshape(b, n_features, n_causes)
-        else:
-            n_times_out = cols // n_causes
-            acc_shap[start:end] += phi.reshape(b, n_features, n_causes, n_times_out).transpose(
-                0, 1, 3, 2
+    feats, splits, lefts, rights, isleaf, leafidx, covers_l, lt_l, node_off = (
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+    )
+    n_off = 0
+    l_off = 0
+    max_off = 0
+    base = None
+    for tree in forest.trees_:
+        flat, leaf_counts = _get_flat_and_leaf_counts(tree)
+        if leaf_counts is None:
+            raise RuntimeError("Could not determine leaf sample counts for SHAP cover computation.")
+        covers = getattr(flat, "_shap_covers", None)
+        if covers is None:
+            covers = _compute_node_covers(
+                flat.is_leaf_flags,
+                flat.left_children,
+                flat.right_children,
+                flat.leaf_idx_of_node,
+                leaf_counts,
             )
+            flat._shap_covers = covers
+        b = getattr(flat, "_shap_base", None)
+        if b is None:
+            b = _base_value(flat, covers)  # (n_causes, n_times_full)
+            flat._shap_base = b
+
+        leaf_table = flat.leaf_table  # (n_leaves, n_causes, n_times_full)
+        if time_projection is not None:
+            leaf_table = time_projection(leaf_table)
+            b = time_projection(b)
+        if time_aggregate is not None:
+            leaf_table = _reduce_time_axis(leaf_table, time_aggregate, times_out)  # (n_leaves, nc)
+            b = _reduce_time_axis(b, time_aggregate, times_out)  # (n_causes,)
+            base = b.copy() if base is None else base + b
+        else:
+            bt = b.T  # (n_times_out, n_causes)
+            base = bt.copy() if base is None else base + bt
+
+        n_leaves = leaf_table.shape[0]
+        lt2d = np.ascontiguousarray(leaf_table.reshape(n_leaves, -1), dtype=np.float64)
+        nn = len(flat.is_leaf_flags)
+        ilf = flat.is_leaf_flags.astype(bool)
+        feats.append(flat.features.astype(np.int64))
+        splits.append(flat.split_values.astype(np.float64))
+        lefts.append(np.where(ilf, -1, flat.left_children.astype(np.int64) + n_off))
+        rights.append(np.where(ilf, -1, flat.right_children.astype(np.int64) + n_off))
+        isleaf.append(ilf.astype(np.int8))
+        leafidx.append(np.where(ilf, flat.leaf_idx_of_node.astype(np.int64) + l_off, -1))
+        covers_l.append(covers.astype(np.float64))
+        lt_l.append(lt2d)
+        node_off.append(n_off)
+        n_off += nn
+        l_off += n_leaves
+        h = int(_tree_height(flat.left_children, flat.right_children, flat.is_leaf_flags))
+        max_off = max(max_off, (h + 2) * (h + 3) // 2 + 4)
+
+    return {
+        "feat": np.concatenate(feats),
+        "split": np.concatenate(splits),
+        "left": np.concatenate(lefts),
+        "right": np.concatenate(rights),
+        "is_leaf": np.concatenate(isleaf),
+        "leaf_idx": np.concatenate(leafidx),
+        "cover": np.concatenate(covers_l),
+        "leaf_tbl": np.concatenate(lt_l),
+        "node_off": np.array(node_off, dtype=np.int64),
+        "max_offset": max_off,
+        "base": base,
+    }
 
 
 def _base_value(flat: FlatTree, covers: np.ndarray) -> np.ndarray:
