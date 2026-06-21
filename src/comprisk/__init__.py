@@ -1,5 +1,11 @@
 """comprisk: Python toolkit for competing risks (forest, Fine-Gray, Aalen-Johansen, Gray, CSC)."""
 
+from comprisk._concordance_ci import (
+    ConcordanceCI,
+    DeltaConcordanceCI,
+    concordance_index_ci,
+    concordance_index_delta_ci,
+)
 from comprisk._sklearn_compat import Surv
 from comprisk.cause_specific_cox import CauseSpecificCox
 from comprisk.cumulative_incidence import CumulativeIncidence
@@ -19,7 +25,9 @@ __version__ = "0.6.0"
 __all__ = [
     "CauseSpecificCox",
     "CompetingRiskForest",
+    "ConcordanceCI",
     "CumulativeIncidence",
+    "DeltaConcordanceCI",
     "FineGrayRegression",
     "GrayTestResult",
     "PenalizedFineGrayRegression",
@@ -28,7 +36,9 @@ __all__ = [
     "__version__",
     "calibration_cr",
     "compute_uno_weights",
+    "concordance_index_ci",
     "concordance_index_cr",
+    "concordance_index_delta_ci",
     "concordance_index_uno_cr",
     "gray_test",
     "score_cr",

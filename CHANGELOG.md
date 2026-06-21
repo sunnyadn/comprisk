@@ -13,6 +13,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Influence-function confidence intervals for the Uno/Wolbers IPCW
+  concordance — `concordance_index_ci` and `concordance_index_delta_ci`.**
+  Deterministic closed-form variance (Wolbers 2014 / Uno 2011; matches Uno's
+  `survC1` perturbation inference and the nonparametric bootstrap to Monte-Carlo
+  error) replacing per-script bootstrap loops. `concordance_index_delta_ci`
+  gives the paired `C(A) − C(B)` difference, CI, and a two-sided p-value for
+  model comparison, with the correlation captured analytically. The censoring
+  Kaplan–Meier estimation error is included in the variance; tail stabilisation
+  (default `gmin="auto"`, or an explicit `tau`) is required for validity, as for
+  Uno/survC1. Optional `transform="logit"` interval improves small-sample
+  coverage. Hundreds of times faster than a `B=1000` bootstrap at `n≈10^4`.
+
 ### Changed
 
 - **TreeSHAP rewrite — parallel-over-samples, near-linear multicore scaling.**
