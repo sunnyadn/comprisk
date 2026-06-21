@@ -22,7 +22,9 @@ Cox — so applied researchers can drop the Python → R round-trip.
   splitting, AJ CIF, Nelson-Aalen CHF, Wolbers + Uno IPCW concordance, OOB
   Breiman VIMP, Ishwaran minimal depth, exact TreeSHAP.
 - **CR-aware evaluation** — `score_cr` (IPCW time-dependent AUC/Brier + bootstrap
-  CIs) and `calibration_cr`, replacing the CR-mode `riskRegression::Score()` block.
+  CIs) and `calibration_cr`, replacing the CR-mode `riskRegression::Score()` block;
+  `concordance_index_ci` gives a closed-form (no-bootstrap) CI for the Uno C-index
+  and a paired model-comparison `concordance_index_delta_ci`.
 - **Fast** — 10–22× vs randomForestSRC on real EHR, 16.6–544× vs scikit-survival
   (n = 5k → 50k), n = 10⁶ in 63 s — at matched C ≈ 0.85. [Benchmarks →](docs/benchmarks.md)
 - **Reproducible** — `equivalence="rfsrc"` reproduces rfSRC's per-tree mtry/nsplit

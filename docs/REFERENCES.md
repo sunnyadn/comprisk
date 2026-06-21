@@ -86,7 +86,20 @@ the function's docstring.
   prediction procedures with censored survival data." *Statistics in
   Medicine* 30(10): 1105–1117.
   → IPCW C-statistic principle used by `concordance_index_uno_cr`;
-    weighting form `1/G(t^-)^2`.
+    weighting form `1/G(t^-)^2`. The perturbation-resampling inference of
+    Uno's `survC1` package (`Inf.Cval`/`Inf.Cval.Delta`) is the external
+    oracle the `concordance_index_ci` variance was validated against in the
+    degenerate single-cause case.
+
+* **Wolbers, M., Blanche, P., Koller, M.T., Witteman, J.C.M., Gerds, T.A.**
+  (2014). "Concordance for prognostic models with competing risks."
+  *Biostatistics* 15(3): 526–539.
+  → Asymptotic linearity (Lemma 3.1) and the closed-form influence function
+    / consistent asymptotic-variance estimator (Web Appendix D) for the
+    cause-specific IPCW concordance. Basis for the deterministic variance in
+    `concordance_index_ci` / `concordance_index_delta_ci` (pair term +
+    censoring-`G` term), validated to agree with the nonparametric bootstrap
+    and with survC1's perturbation inference.
 
 * **Cole, S.R. & Hernán, M.A.** (2008). "Constructing inverse probability
   weights for marginal structural models." *American Journal of

@@ -30,6 +30,14 @@ usage see the [Quickstart](quickstart.md) and the runnable notebooks in
 
 ::: comprisk.concordance_index_uno_cr
 
+::: comprisk.concordance_index_ci
+
+::: comprisk.concordance_index_delta_ci
+
+::: comprisk.ConcordanceCI
+
+::: comprisk.DeltaConcordanceCI
+
 ::: comprisk.compute_uno_weights
 
 ::: comprisk.score_cr

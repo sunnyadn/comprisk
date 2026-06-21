@@ -126,6 +126,24 @@ c_uno = concordance_index_uno_cr(event, time, risk, cause=1, weights=w)
 `compute_uno_weights` defaults to ESS-truncation gating
 (`gmin="auto"`, `ess_frac=0.20`), per Cole & Hernán (2008).
 
+For a **confidence interval** on the Uno C-index, use the closed-form
+influence-function estimator instead of bootstrapping — it is deterministic
+and orders of magnitude faster:
+
+```python
+from comprisk import concordance_index_ci, concordance_index_delta_ci
+
+ci = concordance_index_ci(event, time, risk, cause=1)
+print(ci.estimate, ci.ci_low, ci.ci_high)            # point + 95% CI, no bootstrap
+
+# compare two models on the same subjects (paired delta C, two-sided p-value)
+delta = concordance_index_delta_ci(event, time, risk_a, risk_b, cause=1)
+print(delta.estimate, delta.ci_low, delta.ci_high, delta.pvalue)
+```
+
+The variance includes the censoring-`G` estimation error; tail stabilisation
+(the default `gmin="auto"`, or an explicit `tau`) keeps it valid.
+
 ### Cross-validation
 
 Two equivalent paths.
