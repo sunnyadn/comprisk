@@ -27,9 +27,7 @@ from dataclasses import dataclass
 import numpy as np
 from scipy.stats import norm
 
-from comprisk.metrics import compute_uno_weights
-
-_EPS_T = 1e-9
+from comprisk.metrics import _EPS_T, compute_uno_weights
 
 
 def concordance_influence(event, time, estimate, weights, *, cause):
@@ -74,8 +72,8 @@ def concordance_influence(event, time, estimate, weights, *, cause):
         D += 2.0 * w[i] * npair
         Ndot[i] += 2.0 * w[i] * sh
         Ddot[i] += 2.0 * w[i] * npair
-        np.add.at(Ndot, jA, 2.0 * w[i] * hh)
-        np.add.at(Ddot, jA, 2.0 * w[i])
+        Ndot[jA] += 2.0 * w[i] * hh  # jA is a unique index set (flatnonzero)
+        Ddot[jA] += 2.0 * w[i]
         gh[i] += 4.0 * w[i] * sh
         gd[i] += 4.0 * w[i] * npair
 
@@ -97,12 +95,12 @@ def concordance_influence(event, time, estimate, weights, *, cause):
             D += ww.sum()
             Ndot[i] += nc.sum()
             Ddot[i] += ww.sum()
-            np.add.at(Ndot, jC, nc)
-            np.add.at(Ddot, jC, ww)
+            Ndot[jC] += nc  # jC is a unique index set
+            Ddot[jC] += ww
             gh[i] += 2.0 * w1[i] * (wj1 * hh).sum()
             gd[i] += 2.0 * w1[i] * wj1.sum()
-            np.add.at(gh, jC, ww * hh)
-            np.add.at(gd, jC, ww)
+            gh[jC] += ww * hh
+            gd[jC] += ww
 
     # ---- Branch B: tied case-times (ordered pairs within an equal-time group) ----
     if case.size >= 2:
@@ -122,23 +120,20 @@ def concordance_influence(event, time, estimate, weights, *, cause):
                 pg = p[grp]
                 for a in range(d):
                     i = grp[a]
-                    # ordered pairs (i, i'), i' != i: nc=w_i*hB, dc=w_i; hB=.5+.5*1{p tie}
-                    tie = np.abs(pg - pg[a]) <= _EPS_T
-                    tie[a] = False
-                    cnt_other = d - 1
-                    cnt_tie = int(tie.sum())
-                    sumhB = 0.5 * cnt_other + 0.5 * cnt_tie
-                    N += w[i] * sumhB
-                    D += w[i] * cnt_other
-                    Ndot[i] += w[i] * sumhB
-                    Ddot[i] += w[i] * cnt_other
-                    # partner side: each i' gets nc=w_i*hB(i,i'), dc=w_i
+                    # ordered pairs (i, i') with i' != i: nc=w_i*hB, dc=w_i,
+                    # hB = 0.5 + 0.5*1{prediction tie}
                     other = np.ones(d, dtype=bool)
                     other[a] = False
-                    hb_vec = 0.5 + 0.5 * tie[other].astype(float)
-                    np.add.at(Ndot, grp[other], w[i] * hb_vec)
-                    np.add.at(Ddot, grp[other], w[i])
-                    gh[i] += 2.0 * w[i] * sumhB
+                    hb = 0.5 + 0.5 * (np.abs(pg[other] - pg[a]) <= _EPS_T)
+                    sum_hb = hb.sum()
+                    cnt_other = d - 1
+                    N += w[i] * sum_hb
+                    D += w[i] * cnt_other
+                    Ndot[i] += w[i] * sum_hb
+                    Ddot[i] += w[i] * cnt_other
+                    Ndot[grp[other]] += w[i] * hb  # partner side
+                    Ddot[grp[other]] += w[i]
+                    gh[i] += 2.0 * w[i] * sum_hb
                     gd[i] += 2.0 * w[i] * cnt_other
             g0 = g1 + 1
 
@@ -149,17 +144,18 @@ def concordance_influence(event, time, estimate, weights, *, cause):
 
     # ---- phi^G: propagate G-hat estimation error via the censoring time grid ----
     gcoef = gh - C * gd
-    knots = np.unique(time)
+    knots, counts = np.unique(time, return_counts=True)
     K = knots.size
-    nrisk = np.fromiter(((time >= s).sum() for s in knots), dtype=float, count=K)
-    d_one = np.fromiter((((time == s) & is_cause).sum() for s in knots), float, K)
-    d_oth = np.fromiter((((time == s) & ~is_cause).sum() for s in knots), float, K)
+    mk = np.searchsorted(knots, time)  # exact knot index per subject
+    # per-knot risk-set and event counts in O(n + K) (no per-knot scan of `time`)
+    nrisk = (n - np.cumsum(counts) + counts).astype(float)  # #{time >= knots[k]}
+    d_one = np.bincount(mk[is_cause], minlength=K).astype(float)
+    d_oth = np.bincount(mk[~is_cause], minlength=K).astype(float)
     r = nrisk - d_one
     pi_r = r / n
     dLam = np.zeros(K)
     ok = (d_oth > 0) & (r > 0)
     dLam[ok] = d_oth[ok] / r[ok]
-    mk = np.searchsorted(knots, time)  # exact knot index per subject
     Mbar = np.bincount(mk, weights=gcoef, minlength=K)
     Mcum = np.cumsum(Mbar[::-1])[::-1]  # Mcum[l] = sum_{m>=l} Mbar[m]
     Gl = np.zeros(K)
@@ -174,11 +170,9 @@ def concordance_influence(event, time, estimate, weights, *, cause):
     om = ~cm
     mko = mk[om]
     pir_o = pi_r[mko]
-    safe = pir_o > 0
-    val = np.empty(mko.shape)
-    val[safe] = Mcum[mko[safe]] / pir_o[safe] - Gcum[mko[safe]]
-    val[~safe] = -Gcum[mko[~safe]]
-    phiG[om] = val / D
+    # truncated-tail knots can have pi_r==0; their Mcum/pi_r term drops out
+    mass = np.where(pir_o > 0, Mcum[mko] / np.where(pir_o > 0, pir_o, 1.0), 0.0)
+    phiG[om] = (mass - Gcum[mko]) / D
 
     return C, phiU + phiG
 
@@ -260,6 +254,8 @@ def concordance_index_ci(
     -------
     ConcordanceCI
     """
+    if transform not in ("logit", "none"):
+        raise ValueError(f"transform must be 'logit' or 'none', got {transform!r}")
     time = np.asarray(time, dtype=float)
     w = _ipcw_weights(time, event, cause=cause, gmin=gmin, tau=tau, weight_kwargs=weight_kwargs)
     C, phi = concordance_influence(event, time, estimate, w, cause=cause)
@@ -269,15 +265,14 @@ def concordance_index_ci(
     se = float(np.sqrt((phi**2).sum()) / n)
     z = float(norm.ppf(0.5 + confidence_level / 2.0))
     if transform == "logit" and 0.0 < C < 1.0:
+        # interval on the log-odds scale, back-transformed (better small-n coverage)
         lodds = np.log(C / (1.0 - C))
         se_l = se / (C * (1.0 - C))
         lo = float(1.0 / (1.0 + np.exp(-(lodds - z * se_l))))
         hi = float(1.0 / (1.0 + np.exp(-(lodds + z * se_l))))
-    elif transform in ("logit", "none"):
+    else:  # "none", or "logit" at the C in {0,1} boundary -> symmetric Wald
         lo = float(C - z * se)
         hi = float(C + z * se)
-    else:
-        raise ValueError(f"transform must be 'logit' or 'none', got {transform!r}")
     return ConcordanceCI(float(C), se, lo, hi, confidence_level, n)
 
 
