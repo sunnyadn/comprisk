@@ -9,4 +9,4 @@ def test_package_imports():
 
 def test_version_matches_expected():
     # Pinned to the current release version. Bump when releasing.
-    assert comprisk.__version__ == "0.6.0"
+    assert comprisk.__version__ == "0.7.0"
