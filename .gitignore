@@ -88,3 +88,10 @@ validation/spikes/theta/reports/
 
 # equivalence-gate cache (maintainer-local)
 validation/alignment/_cache/
+
+# Conformal CR paper: private CHF cohort loader + any cohort-derived artifacts.
+# CHF is partner's clinical data — schema/path/results must never be committed.
+validation/spikes/conformal/data/chf.py
+validation/spikes/conformal/**/chf_*
+validation/spikes/conformal/data/*.parquet
+validation/reports/conformal/
