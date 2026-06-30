@@ -36,6 +36,22 @@ from comprisk import CompetingRiskForest
 _ALPHA = 0.1
 T_STAR = 1.0
 
+# Sweep configs (module-level so report.py can reuse them as the single source of
+# truth instead of copying the bodies out of main()).
+REPS = 12
+MISSPEC_DGPS = [
+    ("exponential", "cr_dgp", dict(censor_rate=0.4, competing_frac=0.4, signal=1.0)),
+    ("weibull", "weibull_cr_dgp", dict(censor_rate=0.4, competing_frac=0.4, signal=1.0)),
+    ("non-PH", "nonph_cr_dgp", dict(censor_rate=0.4, competing_frac=0.4, signal=1.2)),
+]
+GMIN_KW = dict(censor_rate=0.6, competing_frac=0.4, signal=1.0)
+GMIN_SWEEP = (0.005, 0.02, 0.05, 0.1, 0.2)
+SMALLN_NS = (500, 1000)
+SMALLN_CENS = (0.6, 0.75)
+SMALLN_NTEST = 4000
+# Name -> DGP callable, so MISSPEC_DGPS can stay JSON-ish / importable.
+DGP_FNS = {"cr_dgp": cr_dgp, "weibull_cr_dgp": weibull_cr_dgp, "nonph_cr_dgp": nonph_cr_dgp}
+
 
 def _fit(X, time, event, *, ntree, seed):
     return CompetingRiskForest(n_estimators=ntree, random_state=seed, n_jobs=-1).fit(X, time, event)
@@ -89,34 +105,29 @@ def _print(tag, path, mean, se, size, nominal=1 - _ALPHA):
 
 
 def main():
-    reps = 12
+    reps = REPS
     print(f"\nalpha={_ALPHA} nominal={1 - _ALPHA:.2f} reps={reps}\n")
 
     print("A. Misspecification (coverage must hold; misspec -> larger sets, not lost cov):")
-    dgps = [
-        ("exponential", cr_dgp, dict(censor_rate=0.4, competing_frac=0.4, signal=1.0)),
-        ("weibull", weibull_cr_dgp, dict(censor_rate=0.4, competing_frac=0.4, signal=1.0)),
-        ("non-PH", nonph_cr_dgp, dict(censor_rate=0.4, competing_frac=0.4, signal=1.2)),
-    ]
     a_ok = True
-    for name, fn, kw in dgps:
+    for name, fn_name, kw in MISSPEC_DGPS:
+        fn = DGP_FNS[fn_name]
         for path in ("oob", "split"):
             m, se, sz = _cell(fn, kw, path, reps=reps)
             ok, _ = _print(name, path, m, se, sz)
             a_ok &= ok
 
     print("\nB. tau / gmin sensitivity (split path, exponential, censor=0.6):")
-    kw = dict(censor_rate=0.6, competing_frac=0.4, signal=1.0)
-    for gmin in (0.005, 0.02, 0.05, 0.1, 0.2):
-        m, se, sz = _cell(cr_dgp, kw, "split", reps=reps, gmin=gmin)
+    for gmin in GMIN_SWEEP:
+        m, se, sz = _cell(cr_dgp, GMIN_KW, "split", reps=reps, gmin=gmin)
         _print(f"gmin={gmin}", "split", m, se, sz)
 
     print("\nC. small-n x extreme censoring (split path):")
     c_ok = True
-    for n_pool in (500, 1000):
-        for cens in (0.6, 0.75):
+    for n_pool in SMALLN_NS:
+        for cens in SMALLN_CENS:
             kw = dict(censor_rate=cens, competing_frac=0.4, signal=1.0)
-            m, se, sz = _cell(cr_dgp, kw, "split", reps=reps, n_pool=n_pool, n_test=4000)
+            m, se, sz = _cell(cr_dgp, kw, "split", reps=reps, n_pool=n_pool, n_test=SMALLN_NTEST)
             ok, _ = _print(f"n={n_pool} cens={cens}", "split", m, se, sz)
             c_ok &= ok
 

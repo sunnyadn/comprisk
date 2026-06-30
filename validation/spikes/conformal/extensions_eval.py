@@ -31,6 +31,10 @@ from comprisk import CompetingRiskForest
 _ALPHA = 0.1
 T_STAR = 1.0
 
+# Module-level so report.py reuses the exact same config (single source of truth).
+REPS = 12
+CFG = dict(censor_rate=0.4, competing_frac=0.4, signal=1.5, n_pool=3000, n_test=3000, ntree=100)
+
 
 def _one_rep(*, censor_rate, competing_frac, signal, n_pool, n_test, ntree, seed):
     Xp, tp, ep, _ = cr_dgp(
@@ -91,8 +95,8 @@ def _one_rep(*, censor_rate, competing_frac, signal, n_pool, n_test, ntree, seed
 
 
 def main():
-    reps = 12
-    cfg = dict(censor_rate=0.4, competing_frac=0.4, signal=1.5, n_pool=3000, n_test=3000, ntree=100)
+    reps = REPS
+    cfg = dict(CFG)
     print(f"\nalpha={_ALPHA} nominal={1 - _ALPHA:.2f} reps={reps} cfg={cfg}\n")
 
     res = [_one_rep(seed=300 + r, **cfg) for r in range(reps)]
