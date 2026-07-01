@@ -33,6 +33,7 @@ from pathlib import Path
 import numpy as np
 from validation.spikes.conformal import extensions_eval as ee
 from validation.spikes.conformal import real_coverage as rc
+from validation.spikes.conformal import real_extensions as rex
 from validation.spikes.conformal import robustness_sweep as rs
 from validation.spikes.conformal.dgp import cr_dgp
 
@@ -464,6 +465,105 @@ def table3_extensions(cfg: Cfg):
     return mon_ok, aps_verdict
 
 
+# -------------------------------------------------- Table 4: real-cohort extensions
+
+
+def table4_real_extensions(cfg: Cfg):
+    """Mondrian per-cause + APS on the REAL cohort(s), split path. Reuses
+    real_extensions.one_split (single source of truth for the extension math).
+
+    Guarded like Table 1: try/except the loader per cohort, skip when data absent.
+    AGGREGATE-ONLY output (no schema)."""
+    print("\n=== Table 4: real-cohort CR extensions ===")
+    rows = []
+    verdicts = {}  # cohort -> {horizon: (mon_ok, aps_verdict)}
+    for cohort in ("chf", "seer"):
+        try:
+            X, time, event, horizons = _load_cohort(cohort, cfg.n_sub)
+        except (FileNotFoundError, ImportError, ValueError) as e:
+            print(f"  [skip] cohort={cohort}: {type(e).__name__} (data absent)")
+            continue
+        causes = sorted(int(c) for c in np.unique(event) if c >= 1)
+        cens = float(np.mean(event == 0))
+        print(
+            f"  cohort={cohort} n={X.shape[0]} p={X.shape[1]} causes={causes} censored={cens:.3f}"
+        )
+        verdicts[cohort] = {}
+        for hname, t_star in horizons.items():
+            res = [
+                rex.one_split(
+                    X,
+                    time,
+                    event,
+                    t_star,
+                    test_frac=cfg.test_frac,
+                    n_estimators=cfg.ntree_real,
+                    seed=100 + r,
+                )
+                for r in range(cfg.reps_real)
+            ]
+
+            def mean(k, _res=res):
+                return float(np.mean([r[k] for r in _res]))
+
+            cov_m, size_m = mean("cov_m"), mean("size_m")
+            L = len(res[0]["per_class"])
+            names = {**{c: f"cause{c + 1}" for c in range(L - 1)}, L - 1: "free"}
+
+            rows.append([cohort, hname, "marginal", "(all)", f"{cov_m:.3f}", f"{size_m:.2f}"])
+            mon_ok = True
+            for c in range(L):
+                pc = float(np.nanmean([r["per_class"][c] for r in res]))
+                mon_ok &= abs(pc - NOMINAL) <= 0.03
+                rows.append([cohort, hname, "Mondrian", names[c], f"{pc:.3f}", "—"])
+            size_mon = mean("size_mon")
+            rows.append([cohort, hname, "Mondrian", "(size)", "—", f"{size_mon:.2f}"])
+
+            cov_a, size_a = mean("cov_a"), mean("size_a")
+            aps_cov_ok = cov_a >= NOMINAL - 0.02
+            aps_nontrivial = size_a < L - 0.05
+            if aps_cov_ok and aps_nontrivial:
+                aps_verdict = "PASS"
+            elif aps_cov_ok:
+                aps_verdict = "DEGENERATE"
+            else:
+                aps_verdict = "REVIEW"
+            rows.append([cohort, hname, "APS", "(all)", f"{cov_a:.3f}", f"{size_a:.2f}"])
+            verdicts[cohort][hname] = (mon_ok, aps_verdict)
+            print(
+                f"    {hname:<5}marginal cov={cov_m:.3f} size={size_m:.2f}; "
+                f"Mondrian {'PASS' if mon_ok else 'REVIEW'} size={size_mon:.2f}; "
+                f"APS cov={cov_a:.3f} size={size_a:.2f} -> {aps_verdict}"
+            )
+
+    header = ["cohort", "horizon", "method", "stratum", "cov", "size"]
+    if not rows:
+        rows = [["(none)", "-", "-", "-", "-", "no cohort data present"]]
+    md = (
+        f"# Table 4 — real-cohort CR extensions (alpha={_ALPHA}, nominal={NOMINAL:.2f})\n\n"
+        f"Mondrian per-cause conditional coverage + APS coherent sets on the real "
+        f"cohort(s), split calibration path. Reuses `real_extensions.one_split` "
+        f"(same extension math as Table 3). reps={cfg.reps_real}, ntree={cfg.ntree_real}, "
+        f"n_sub={cfg.n_sub}. Mondrian rows are per-cause conditional coverage; APS "
+        f"degenerates to the full set at low cause cardinality.\n\n"
+    ) + _md_table(header, rows)
+    _write("table4_real_extensions.md", md)
+    _write(
+        "table4_real_extensions.tex",
+        _tex_table(
+            "llllrr",
+            header,
+            rows,
+            caption=(
+                "Real-cohort CR-specific extensions: marginal vs Mondrian (per-cause "
+                "conditional) vs APS coherent sets, split calibration path."
+            ),
+            label="tab:real_extensions",
+        ),
+    )
+    return verdicts
+
+
 # ------------------------------------------------------------- optional tau figure
 
 
@@ -508,7 +608,7 @@ def maybe_tau_figure():
 # ----------------------------------------------------------------- index + verdicts
 
 
-def write_index(cfg, g1, g2, g3, *, quick):
+def write_index(cfg, g1, g2, g3, g4, *, quick):
     a_ok, c_ok = g2
     mon_ok, aps_verdict = g3
 
@@ -536,9 +636,26 @@ def write_index(cfg, g1, g2, g3, *, quick):
         f"small-n {'PASS' if c_ok else 'REVIEW'} — tau coverage flat (see tau_sweep.csv)."
     )
     g3_line = (
-        f"Gate 3 (extensions): Mondrian per-cause {'PASS' if mon_ok else 'REVIEW'}; "
+        f"Gate 3 (extensions, synthetic): Mondrian per-cause {'PASS' if mon_ok else 'REVIEW'}; "
         f"APS {aps_verdict}."
     )
+
+    # Real-cohort extensions (Table 4): per-cohort x horizon verdicts.
+    if not g4:
+        g4_line = "Real-cohort extensions (Table 4): NO DATA — no real cohort present."
+        g4_detail = []
+    else:
+        g4_detail = []
+        for cohort, per_h in g4.items():
+            for hname, (m_ok, aps_v) in per_h.items():
+                g4_detail.append(
+                    f"  - **{cohort} {hname}**: Mondrian per-cause "
+                    f"{'PASS' if m_ok else 'REVIEW'}; APS {aps_v}."
+                )
+        g4_line = (
+            "Real-cohort extensions (Table 4): Mondrian/APS on the real cohort(s), "
+            "split path — see per-horizon detail."
+        )
 
     profile = "QUICK SMOKE (not paper-grade)" if quick else "paper-grade"
     body = [
@@ -557,12 +674,16 @@ def write_index(cfg, g1, g2, g3, *, quick):
         *g1_detail,
         f"- {g2_line}",
         f"- {g3_line}",
+        f"- {g4_line}",
+        *g4_detail,
         "",
         "## Tables",
         "",
         "- [Table 1 — real-data coverage](table1_real_coverage.md) (`table1_real_coverage.tex`)",
         "- [Table 2 — robustness](table2_robustness.md) (`table2_robustness.tex`, `tau_sweep.csv`)",
-        "- [Table 3 — extensions](table3_extensions.md) (`table3_extensions.tex`)",
+        "- [Table 3 — extensions (synthetic)](table3_extensions.md) (`table3_extensions.tex`)",
+        "- [Table 4 — extensions (real cohort)](table4_real_extensions.md) "
+        "(`table4_real_extensions.tex`)",
         "",
         "## Residual risk -> theory strand",
         "",
@@ -572,7 +693,7 @@ def write_index(cfg, g1, g2, g3, *, quick):
         "- APS coherent sets degenerate to the full label set at low cause cardinality "
         "(K=2); a randomized-APS refinement is the open methods lever.",
         "- SEER second cohort pending the user's SEER export; CHF Mondrian/APS on the "
-        "real cohort still to run (Phase 3 extensions were synthetic).",
+        "real cohort now run (Table 4, split path).",
         "",
     ]
     _write("REPORT.md", "\n".join(body))
@@ -615,8 +736,9 @@ def main():
     g1 = table1_real_coverage(cfg)
     g2 = table2_robustness(cfg)
     g3 = table3_extensions(cfg)
+    g4 = table4_real_extensions(cfg)
     maybe_tau_figure()
-    write_index(cfg, g1, g2, g3, quick=a.quick)
+    write_index(cfg, g1, g2, g3, g4, quick=a.quick)
     print("\ndone.")
 
 

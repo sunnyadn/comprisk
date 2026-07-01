@@ -36,6 +36,48 @@ REPS = 12
 CFG = dict(censor_rate=0.4, competing_frac=0.4, signal=1.5, n_pool=3000, n_test=3000, ntree=100)
 
 
+def eval_extensions(pic_c, pif_c, yc, wc, obs_c, pic_t, pif_t, yt, wt, obs_t, alpha):
+    """Marginal / Mondrian / APS evaluation from a calibrated + test split.
+
+    Single source of truth for the Gate-3 extension math: given the calibration
+    fold scores (``*_c`` + IPCW weights + observed mask) and the test fold scores
+    (``*_t``), returns the marginal baseline, Mondrian per-class coverage, and APS
+    coherent-set coverage. Shared by the synthetic (`_one_rep`) and real-cohort
+    (`real_extensions`) harnesses so both compute identical quantities.
+
+    Inputs use the same layout as the primitives: ``pic_*`` is (n, K) cause CIF,
+    ``pif_*`` is (n,) event-free prob, ``y*`` horizon labels, ``w*`` IPCW weights,
+    ``obs_*`` observed-before-t* mask.
+    """
+    Pc, Pt = assemble_P(pic_c, pif_c), assemble_P(pic_t, pif_t)
+
+    # --- marginal baseline ---
+    s = nonconformity(pic_c, pif_c, yc)
+    qm = weighted_quantile_threshold(s[obs_c], wc[obs_c], alpha)
+    sets_m = prediction_sets(pic_t, pif_t, qm)
+    cov_m, size_m = ipcw_coverage(sets_m, yt, wt, obs_t)
+
+    # --- Mondrian (per-class) ---
+    qmon = mondrian_thresholds(Pc, yc, wc, obs_c, alpha)
+    sets_mon = mondrian_sets(Pt, qmon)
+    per_class, size_mon = per_class_coverage(sets_mon, yt, wt, obs_t)
+
+    # --- APS coherent ---
+    sa = aps_scores(Pc, yc)
+    qa = aps_threshold(sa[obs_c], wc[obs_c], alpha)
+    sets_a = aps_sets(Pt, qa)
+    cov_a, size_a = ipcw_coverage(sets_a, yt, wt, obs_t)
+
+    return dict(
+        cov_m=cov_m,
+        size_m=size_m,
+        per_class=per_class,
+        size_mon=size_mon,
+        cov_a=cov_a,
+        size_a=size_a,
+    )
+
+
 def _one_rep(*, censor_rate, competing_frac, signal, n_pool, n_test, ntree, seed):
     Xp, tp, ep, _ = cr_dgp(
         n_pool,
@@ -65,33 +107,7 @@ def _one_rep(*, censor_rate, competing_frac, signal, n_pool, n_test, ntree, seed
     yt, obs_t = horizon_labels(tt, et, T_STAR)
     wt, _ = ipcw_weights_at_horizon(tt, et, T_STAR)
 
-    Pc, Pt = assemble_P(pic_c, pif_c), assemble_P(pic_t, pif_t)
-
-    # --- marginal baseline ---
-    s = nonconformity(pic_c, pif_c, yc)
-    qm = weighted_quantile_threshold(s[obs_c], wc[obs_c], _ALPHA)
-    sets_m = prediction_sets(pic_t, pif_t, qm)
-    cov_m, size_m = ipcw_coverage(sets_m, yt, wt, obs_t)
-
-    # --- Mondrian (per-class) ---
-    qmon = mondrian_thresholds(Pc, yc, wc, obs_c, _ALPHA)
-    sets_mon = mondrian_sets(Pt, qmon)
-    per_class, size_mon = per_class_coverage(sets_mon, yt, wt, obs_t)
-
-    # --- APS coherent ---
-    sa = aps_scores(Pc, yc)
-    qa = aps_threshold(sa[obs_c], wc[obs_c], _ALPHA)
-    sets_a = aps_sets(Pt, qa)
-    cov_a, size_a = ipcw_coverage(sets_a, yt, wt, obs_t)
-
-    return dict(
-        cov_m=cov_m,
-        size_m=size_m,
-        per_class=per_class,
-        size_mon=size_mon,
-        cov_a=cov_a,
-        size_a=size_a,
-    )
+    return eval_extensions(pic_c, pif_c, yc, wc, obs_c, pic_t, pif_t, yt, wt, obs_t, _ALPHA)
 
 
 def main():
