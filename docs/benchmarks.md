@@ -61,7 +61,7 @@ directly. Reproducible via
 
 ## Scaling on the synthetic Weibull DGP
 
-![Wall time vs n on i7-14700K — comprisk vs randomForestSRC vs scikit-survival, synthetic 2-cause Weibull, p=58, ntree=100. Crforest reaches n=10⁶ in 60 s; rfSRC and sksurv scale super-linearly and become impractical past n≈50k.](figures/scaling_curve.svg)
+![Wall time vs n on i7-14700K — comprisk vs randomForestSRC vs scikit-survival, synthetic 2-cause Weibull, p=58, ntree=100. Crforest reaches n=10⁶ in 63 s; rfSRC and sksurv scale super-linearly and become impractical past n≈50k.](figures/scaling_curve.svg)
 
 Three libraries on identical synthetic data: comprisk sub-linear
 (≈ n^0.7), rfSRC and sksurv super-linear (rfSRC ≈ n^2.0, sksurv ≈ n^2.2).

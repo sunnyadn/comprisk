@@ -25,7 +25,7 @@ fingerprint sidecar.
 |---|---|---|---|
 | comprisk 22.5 s vs rfSRC 111.7 s @ n=75k real CHF | `validation/spikes/kappa/exp4c_win_comprisk_dump.py` + `exp2_rfsrc.R` | `/tmp/kappa_exp4*.{parquet,Rds}` | ⚠ in spikes/, promote to `comparisons/rfsrc_wall.{py,R}` for v0.2 |
 | 6.13× vs rfSRC best `ntime` | `validation/spikes/lambda/exp9c_rfsrc_ntime_sweep.R` | `/tmp/lambda_exp9c.parquet` | ⚠ in spikes/, promote for v0.2 |
-| comprisk n=1M = 122 s CPU | `validation/spikes/lambda/exp5_paper_scale_bench.py` | `/tmp/lambda_exp5_walls.parquet` | ⚠ in spikes/, promote to `scaling/n_axis.py` for v0.2 |
+| comprisk n=1M = 63 s wall (i7-14700K; 122 s was the pre-v0.2 number) | `validation/spikes/lambda/exp5_paper_scale_bench.py` | `/tmp/lambda_exp5_walls.parquet` | ⚠ in spikes/, promote to `scaling/n_axis.py` for v0.2 |
 | rfSRC 14.7 GB @ n=75k → 80 GB @ n=500k | not scripted yet (peak RSS read out-of-band during κ runs) | — | ✗ ship `comparisons/rfsrc_rss.py` for v0.2 |
 | pickle ~3.6 GB @ n=100k, n_jobs=1 | `validation/comparisons/sksurv_oom.py` (parallel column at n=100k row) | `/tmp/sksurv_oom*.parquet` | ✓ scripted (this script) |
 | comprisk 5.7×–64× faster than sksurv `low_memory=True` (n=5k…25k) | `validation/comparisons/sksurv_oom.py` `--low-memory-sksurv --n-jobs -1` | `/tmp/sksurv_oom_lowmem_njobsminus1_win.parquet` | ✓ scripted |
