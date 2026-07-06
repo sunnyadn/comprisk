@@ -151,7 +151,7 @@ resolves to latest) or GitHub's "Cite this repository" button ([`CITATION.cff`](
 
 ```bibtex
 @software{yang_comprisk_2026,
-  author    = {Yang, Sunny and Zhao, Wanqi},
+  author    = {Yang, Sunny and Zhao, Weiyan and Zhao, Wanqi},
   title     = {{comprisk: a Python toolkit for competing risks}},
   year      = {2026},
   publisher = {Zenodo},

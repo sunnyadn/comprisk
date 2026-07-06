@@ -12,6 +12,7 @@ license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.10"
 authors = [
     { name = "Sunny Yang", email = "guangy4@illinois.edu" },
+    { name = "Weiyan Zhao", email = "hq369879657@gmail.com" },
     { name = "Wanqi Zhao", email = "wanqi.zhao@ucalgary.ca" },
 ]
 keywords = [
