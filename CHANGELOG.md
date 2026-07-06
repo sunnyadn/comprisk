@@ -13,6 +13,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] — 2026-07-07
+
+### Added
+
+- **JOSS manuscript** (`paper/paper.md`, `paper/paper.bib`) for submission to
+  the Journal of Open Source Software.
+- **Community guidelines**: `CONTRIBUTING.md` (issue reporting, dev setup,
+  test/lint commands, PR flow) and `CODE_OF_CONDUCT.md` (Contributor Covenant
+  2.1).
+
+### Changed
+
+- Documentation only; no code or API changes since 0.7.0.
+- Reconciled the reported `n = 10^6` scaling wall-time to 63 s across the
+  benchmark docs (previously an inconsistent 60 s / 122 s).
+- `CITATION.cff` now lists the v0.7.0 Zenodo version DOI.
+
 ## [0.7.0] — 2026-06-22
 
 ### Added
