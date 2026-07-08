@@ -176,11 +176,23 @@ benchmark dossier.
 
 # Generative AI disclosure
 
-Generative AI coding assistants were used as an assistive tool for drafting and
-refactoring code, tests, and documentation. All methodology, design, and
-numerical validation against the R reference implementations were carried out
-and reviewed by the authors, who take full responsibility for the software's
-correctness and the claims made here.
+Generative AI coding assistants were used during the development of `comprisk`.
+Specifically, Anthropic's Claude models — primarily Claude Opus (successive
+versions 4.6, 4.7, and 4.8 over the development period), with occasional use of
+Claude Sonnet — accessed through the Claude Code command-line interface, were
+used to assist
+with drafting and refactoring source code, scaffolding and writing the test
+suite, generating and editing documentation, and drafting and copy-editing the
+text of this paper. No AI tools were used for any communication with editors or
+reviewers.
+
+All statistical methodology, algorithmic and API design decisions, and the
+numerical validation of every estimator against the established R reference
+implementations (`randomForestSRC`, `cmprsk`, `crrp`, `survival`,
+`riskRegression`) were determined and carried out by the human authors. The
+authors reviewed, edited, and validated all AI-assisted outputs, made all core
+design decisions, and take full responsibility for the correctness of the
+software and the accuracy of the claims made in this paper.
 
 # Acknowledgements
 
