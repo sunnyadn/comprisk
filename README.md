@@ -4,6 +4,7 @@
 [![CI](https://github.com/sunnyadn/comprisk/actions/workflows/ci.yml/badge.svg)](https://github.com/sunnyadn/comprisk/actions/workflows/ci.yml)
 [![docs](https://img.shields.io/badge/docs-sunnyadn.github.io%2Fcomprisk-blue)](https://sunnyadn.github.io/comprisk/)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.19876282-blue)](https://doi.org/10.5281/zenodo.19876282)
+[![arXiv](https://img.shields.io/badge/arXiv-2607.09431-b31b1b.svg)](https://arxiv.org/abs/2607.09431)
 
 A Python toolkit for **competing-risks** survival analysis: a scalable,
 scikit-learn-compatible competing-risks random survival forest plus the canonical
@@ -146,16 +147,21 @@ uv run pytest && uv run ruff check .
 
 ## License & citation
 
-Apache-2.0 ([LICENSE](LICENSE), [NOTICE](NOTICE)). Cite via the DOI below (concept-level,
-resolves to latest) or GitHub's "Cite this repository" button ([`CITATION.cff`](CITATION.cff)):
+Apache-2.0 ([LICENSE](LICENSE), [NOTICE](NOTICE)). If you use comprisk in your
+research, please cite the paper:
 
 ```bibtex
-@software{yang_comprisk_2026,
-  author    = {Yang, Sunny and Zhao, Weiyan and Zhao, Wanqi},
-  title     = {{comprisk: a Python toolkit for competing risks}},
-  year      = {2026},
-  publisher = {Zenodo},
-  doi       = {10.5281/zenodo.19876282},
-  url       = {https://doi.org/10.5281/zenodo.19876282},
+@article{yang_comprisk_2026,
+  author        = {Yang, Sunny and Zhao, Weiyan and Zhao, Wanqi},
+  title         = {{comprisk: A scikit-learn-compatible Python toolkit for competing-risks survival analysis}},
+  year          = {2026},
+  eprint        = {2607.09431},
+  archivePrefix = {arXiv},
+  primaryClass  = {stat.CO},
+  url           = {https://arxiv.org/abs/2607.09431},
 }
 ```
+
+To cite a specific release, use the archived Zenodo DOI (concept-level
+[10.5281/zenodo.19876282](https://doi.org/10.5281/zenodo.19876282), resolves to
+latest) or GitHub's "Cite this repository" button ([`CITATION.cff`](CITATION.cff)).

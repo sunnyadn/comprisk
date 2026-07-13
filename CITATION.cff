@@ -25,6 +25,9 @@ version: 0.7.1
 date-released: 2026-07-07
 doi: 10.5281/zenodo.19876282
 identifiers:
+  - type: other
+    value: "arXiv:2607.09431"
+    description: arXiv preprint (paper)
   - type: doi
     value: 10.5281/zenodo.19876282
     description: Concept DOI (always resolves to latest version)
@@ -66,3 +69,24 @@ keywords:
   - machine-learning
   - biostatistics
   - python
+preferred-citation:
+  type: article
+  title: "comprisk: A scikit-learn-compatible Python toolkit for competing-risks survival analysis"
+  year: 2026
+  url: https://arxiv.org/abs/2607.09431
+  identifiers:
+    - type: other
+      value: "arXiv:2607.09431"
+      description: arXiv preprint
+  authors:
+    - family-names: Yang
+      given-names: Sunny
+      email: guangy4@illinois.edu
+      orcid: "https://orcid.org/0009-0006-3160-0860"
+    - family-names: Zhao
+      given-names: Weiyan
+      email: hq369879657@gmail.com
+      orcid: "https://orcid.org/0009-0005-7634-6715"
+    - family-names: Zhao
+      given-names: Wanqi
+      email: wanqi.zhao@ucalgary.ca
