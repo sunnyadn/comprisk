@@ -34,6 +34,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   contract forbids validation in the constructor. `CompetingRiskForest(device=…)`
   and `set_params(device=…)` now accept any value; an invalid one raises
   `ValueError` at `fit` with the same message.
+- Predict-time `X` validation is shared across estimators, so the regression
+  models' shape errors are now specific rather than merged: a 1-D `X` reports
+  `X must be 2-D; got ndim=1` and a wrong width reports `X has wrong n_features:
+  expected 3, got 9`, matching what the forest already raised. Still `ValueError`
+  — only the message text changed.
 
 ### Changed
 
