@@ -12,13 +12,23 @@ Verifies CompetingRiskForest is a true sklearn-compatible estimator:
 
 from __future__ import annotations
 
+import inspect
+
 import numpy as np
 import pytest
-from sklearn.base import clone
+from sklearn.base import BaseEstimator, clone
 from sklearn.exceptions import NotFittedError
-from sklearn.model_selection import KFold, cross_val_score
+from sklearn.model_selection import GridSearchCV, KFold, cross_val_score
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
-from comprisk import CompetingRiskForest, Surv
+from comprisk import (
+    CauseSpecificCox,
+    CompetingRiskForest,
+    FineGrayRegression,
+    PenalizedFineGrayRegression,
+    Surv,
+)
 
 
 def _toy_cr(n: int = 200, p: int = 5, seed: int = 0):
@@ -148,3 +158,51 @@ def test_fit_validates_device():
     f = CompetingRiskForest(n_estimators=2, random_state=0, device="nonsense")
     with pytest.raises(ValueError, match="device must be one of"):
         f.fit(X, time, event)
+
+
+# ---------------------------------------------------------------------------
+# Every public estimator is a BaseEstimator: get_params / set_params / clone,
+# so all four can go into Pipeline and GridSearchCV
+# ---------------------------------------------------------------------------
+
+ALL_ESTIMATORS = [
+    CompetingRiskForest,
+    PenalizedFineGrayRegression,
+    FineGrayRegression,
+    CauseSpecificCox,
+]
+
+
+@pytest.mark.parametrize("cls", ALL_ESTIMATORS, ids=lambda c: c.__name__)
+def test_estimator_is_base_estimator(cls):
+    assert issubclass(cls, BaseEstimator)
+    est = cls()
+    params = est.get_params()
+    # get_params must report exactly the __init__ signature
+    expected = {p for p in inspect.signature(cls.__init__).parameters if p != "self"}
+    assert set(params) == expected
+    assert isinstance(clone(est), cls)
+
+
+@pytest.mark.parametrize("cls", ALL_ESTIMATORS, ids=lambda c: c.__name__)
+def test_set_params_roundtrip(cls):
+    est = cls()
+    name, value = next(iter(est.get_params().items()))
+    assert est.set_params(**{name: value}) is est
+    assert est.get_params()[name] == value
+
+
+@pytest.mark.parametrize("cls", [FineGrayRegression, CauseSpecificCox], ids=lambda c: c.__name__)
+def test_regressor_in_pipeline_and_grid_search(cls):
+    X, time, event = _toy_cr(n=150, p=3)
+    y = Surv.from_arrays(event=event, time=time)
+    pipe = Pipeline([("sc", StandardScaler()), ("m", cls())]).fit(X, y)
+    assert hasattr(pipe[-1], "coef_")
+    # GridSearchCV needs clone + set_params; `cause` exists on both estimators.
+    gs = GridSearchCV(cls(), {"cause": [1, 2]}, cv=KFold(2), scoring=_coef_norm).fit(X, y)
+    assert gs.best_params_["cause"] in (1, 2)
+
+
+def _coef_norm(estimator, X, y):
+    """Scorer standing in for a real metric — these estimators expose no score()."""
+    return float(np.linalg.norm(estimator.coef_))

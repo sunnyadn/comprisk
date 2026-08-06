@@ -18,6 +18,7 @@ of competing risks." *Biometrics* 34(4):541-554.
 from __future__ import annotations
 
 import numpy as np
+from sklearn.base import BaseEstimator
 
 from comprisk._sklearn_compat import is_structured_survival_y, unpack_structured_y
 
@@ -94,7 +95,7 @@ def _cox_breslow_pl(
     return nll, score, info
 
 
-class CauseSpecificCox:
+class CauseSpecificCox(BaseEstimator):
     """Cause-specific Cox proportional-hazards regression.
 
     Fits a Cox PH model with the cause-specific censoring rule: subjects

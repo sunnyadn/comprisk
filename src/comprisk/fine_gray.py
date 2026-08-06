@@ -26,6 +26,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
+from sklearn.base import BaseEstimator
 
 from comprisk._sklearn_compat import is_structured_survival_y, unpack_structured_y
 
@@ -389,7 +390,7 @@ class _FGState:
     baseline_hazard_increments: np.ndarray  # (n_e,) hazard increments
 
 
-class FineGrayRegression:
+class FineGrayRegression(BaseEstimator):
     """Fine-Gray subdistribution-hazard regression for competing risks.
 
     Fits the proportional subdistribution-hazards model of Fine & Gray
