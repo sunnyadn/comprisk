@@ -99,3 +99,14 @@ validation/spikes/conformal/data/chf.py
 validation/spikes/conformal/**/chf_*
 validation/spikes/conformal/data/*.parquet
 validation/reports/conformal/
+
+# Trellis task/spec workspace (internal planning; this repo is public)
+.trellis/
+AGENTS.md
+
+# Manuscript working directories. This repo is public, so unpublished drafts,
+# reviewer/verifier notes, and named-recipient outreach emails stay local.
+# Published manuscripts live in paper/paper.md (JOSS) and on arXiv.
+paper/arxiv/
+paper/conformal/
+C3-VERIFY-PROMPT.md
