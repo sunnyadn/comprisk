@@ -55,8 +55,17 @@ shap, base = forest.shap_values(X[:10])   # exact TreeSHAP (n, p, n_times, n_cau
 
 Prediction shapes, scoring, cross-validation, VIMP, minimal depth, GPU, and rfSRC
 migration — all with runnable code — are in the
-**[quickstart](docs/quickstart.md)**. `CompetingRiskForest` is a real sklearn
-estimator (`cross_val_score` / `Pipeline` work without a wrapper).
+**[quickstart](docs/quickstart.md)**. Every estimator here is a real sklearn
+estimator — `get_params` / `set_params` / `clone`, and `cross_val_score` /
+`Pipeline` / `GridSearchCV` without a wrapper. Fit on a `DataFrame` and
+`feature_names_in_` carries your column names through to VIMP output.
+
+Like every survival library, these estimators cannot pass sklearn's full
+`check_estimator` suite: it supplies a plain numeric `y`, while competing-risks
+data needs both a time and an event per subject (use
+[`Surv.from_arrays`](docs/quickstart.md)). Everything outside that constraint —
+and sparse `X`, which is unsupported — is covered by
+`tests/test_sklearn_compat.py`.
 
 ### Regression & non-parametric models
 

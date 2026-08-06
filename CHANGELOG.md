@@ -13,6 +13,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`feature_names_in_` on `CompetingRiskForest`** (scikit-learn SLEP007). Fitting
+  on a `DataFrame` now records its column names; fitting on a plain array leaves
+  the attribute absent, and refitting on an unnamed `X` clears it. Predict-side
+  methods warn when the names differ from those seen at fit.
+- **`FineGrayRegression` and `CauseSpecificCox` are now `BaseEstimator`s**, so
+  `get_params` / `set_params` / `sklearn.base.clone` work and both can be used
+  inside `Pipeline` and `GridSearchCV`. Previously `clone()` raised `TypeError`.
+
+### Fixed
+
+- **`compute_importance()` returns real feature names.** It had always fallen
+  back to positional `feature_0`, `feature_1`, … even when the model was fit on a
+  named `DataFrame`, because `feature_names_in_` was never populated.
+- **`device` is validated in `fit`, not `__init__`.** scikit-learn's estimator
+  contract forbids validation in the constructor. `CompetingRiskForest(device=…)`
+  and `set_params(device=…)` now accept any value; an invalid one raises
+  `ValueError` at `fit` with the same message.
+
+### Changed
+
+- **Breaking (pre-1.0):** `PenalizedFineGrayRegression.predict`,
+  `predict_cumulative_incidence`, and `coef_at` raise
+  `sklearn.exceptions.NotFittedError` instead of `RuntimeError` when called
+  before `fit`. `NotFittedError` subclasses both `ValueError` and
+  `AttributeError`, so only callers catching `RuntimeError` are affected.
+
 ## [0.7.1] — 2026-07-07
 
 ### Added
