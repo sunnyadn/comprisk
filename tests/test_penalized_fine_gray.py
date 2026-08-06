@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from sklearn.base import clone
+from sklearn.exceptions import NotFittedError
 
 from comprisk import FineGrayRegression, PenalizedFineGrayRegression, Surv
 from comprisk.fine_gray import _build_event_time_grid, _km_censoring_left_limit
@@ -500,8 +501,12 @@ def test_coef_at_index_and_value():
 
 def test_predict_before_fit_raises():
     m = PenalizedFineGrayRegression()
-    with pytest.raises(RuntimeError, match="not fitted"):
+    with pytest.raises(NotFittedError):
         m.predict(np.zeros((3, 4)))
+    with pytest.raises(NotFittedError):
+        m.predict_cumulative_incidence(np.zeros((3, 4)))
+    with pytest.raises(NotFittedError):
+        m.coef_at(0)
 
 
 # ---------------------------------------------------------------------------

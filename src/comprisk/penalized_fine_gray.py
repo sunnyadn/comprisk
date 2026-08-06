@@ -58,6 +58,7 @@ from dataclasses import dataclass
 import numpy as np
 from joblib import Parallel, delayed
 from sklearn.base import BaseEstimator, clone
+from sklearn.utils.validation import check_is_fitted
 
 from comprisk._sklearn_compat import is_structured_survival_y, unpack_structured_y
 from comprisk.fine_gray import (
@@ -979,13 +980,9 @@ class PenalizedFineGrayRegression(BaseEstimator):
 
     # -- predict ------------------------------------------------------------
 
-    def _check_is_fitted(self) -> None:
-        if not hasattr(self, "coef_"):
-            raise RuntimeError("estimator is not fitted; call fit() first")
-
     def predict(self, X) -> np.ndarray:
         """Linear predictor ``X @ coef_`` at the selected ``lambda``."""
-        self._check_is_fitted()
+        check_is_fitted(self, "coef_")
         X = np.asarray(X, dtype=np.float64)
         if X.ndim != 2 or X.shape[1] != self.n_features_in_:
             raise ValueError(f"X must have shape (n_samples, {self.n_features_in_}); got {X.shape}")
@@ -1008,7 +1005,7 @@ class PenalizedFineGrayRegression(BaseEstimator):
         -------
         F : ndarray, shape (n_samples, n_times)
         """
-        self._check_is_fitted()
+        check_is_fitted(self, "coef_")
         X = np.asarray(X, dtype=np.float64)
         if X.ndim != 2 or X.shape[1] != self.n_features_in_:
             raise ValueError(f"X must have shape (n_samples, {self.n_features_in_})")
@@ -1026,7 +1023,7 @@ class PenalizedFineGrayRegression(BaseEstimator):
         self, lambda_index: int | None = None, *, lambda_value: float | None = None
     ) -> np.ndarray:
         """Coefficients at a specific path index or (nearest) ``lambda`` value."""
-        self._check_is_fitted()
+        check_is_fitted(self, "coef_")
         if (lambda_index is None) == (lambda_value is None):
             raise ValueError("specify exactly one of lambda_index= or lambda_value=")
         if lambda_value is not None:
