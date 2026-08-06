@@ -5,7 +5,9 @@ Weighted split conformal (Tibshirani et al. 2019) with IPCW calibration weights:
 the observed (uncensored-before-t*) subjects are a censoring-biased sample of the
 population, so each carries weight w_i = 1/Ghat(min(T_i,t*)^-). The threshold is the
 weighted (1-alpha) quantile of calibration nonconformity scores, with a finite-
-sample point mass at +inf carrying the expected test-point weight.
+sample point mass at +inf carrying the maximal admissible atom weight 1/g_min (the
+test point's own oracle weight needs its unobserved outcome; 1/g_min >= w*_te is
+realizable and floor-preserving -- see coverage.tex eq:atom).
 
 Prediction set for a subject:  S(x) = { label l : pi_l(t*|x) >= 1 - qhat }.
 
@@ -21,21 +23,26 @@ import numpy as np
 from validation.spikes.conformal.dgp import EVENT_FREE
 
 
-def weighted_quantile_threshold(scores, weights, alpha, test_weight=None):
+def weighted_quantile_threshold(scores, weights, alpha, test_weight=None, g_min=0.05):
     """Smallest s such that the (finite-sample, test-inflated) weighted CDF of
     calibration scores reaches 1 - alpha.
 
-    A +inf atom with mass ``test_weight`` (default: mean calibration weight)
-    accounts for the unknown test-point rank, the weighted analogue of the
-    (n+1) split-conformal correction. If the atom alone exceeds alpha the set is
-    everything (threshold = +inf).
+    A +inf atom with mass ``test_weight`` accounts for the unknown test-point rank,
+    the weighted analogue of the (n+1) split-conformal correction. The test point's
+    own oracle weight needs its unobserved outcome, so it is not computable; the
+    analyzed procedure uses the maximal admissible atom ``1 / g_min`` (the weight
+    clip floor), which is realizable and floor-preserving because atom mass only
+    inflates the quantile (coverage.tex, eq:atom, Lemma lem:oracle / Thm thm:main).
+    Default ``test_weight = 1 / g_min``. (An earlier version used the mean
+    calibration weight, which has no finite-sample floor proof; see Remark rem:atom.)
+    If the atom alone exceeds alpha the set is everything (threshold = +inf).
     """
     scores = np.asarray(scores, dtype=float)
     weights = np.asarray(weights, dtype=float)
     if scores.size == 0:
         return np.inf
     if test_weight is None:
-        test_weight = weights.mean()
+        test_weight = 1.0 / g_min
 
     order = np.argsort(scores, kind="stable")
     s_sorted = scores[order]

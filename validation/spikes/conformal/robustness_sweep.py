@@ -76,7 +76,8 @@ def _one_rep(dgp_fn, dgp_kw, path, *, gmin, n_pool, n_test, ntree, seed):
         wc, _ = ipcw_weights_at_horizon(tp[h:], ep[h:], T_STAR, gmin=gmin)
 
     s = nonconformity(pic, pif, yc)
-    qhat = weighted_quantile_threshold(s[obs_c], wc[obs_c], alpha=_ALPHA)
+    # Keep the atom coupled to the swept clip floor: w_infty = 1/g_min (eq:atom).
+    qhat = weighted_quantile_threshold(s[obs_c], wc[obs_c], alpha=_ALPHA, g_min=gmin)
     pic_t, pif_t = split_cif_at_horizon(forest, Xt, T_STAR)
     sets = prediction_sets(pic_t, pif_t, qhat)
     return ipcw_coverage(sets, yt, wt, obs_t)

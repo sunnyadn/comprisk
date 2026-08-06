@@ -89,6 +89,10 @@ validation/spikes/theta/reports/
 # equivalence-gate cache (maintainer-local)
 validation/alignment/_cache/
 
+# Local agent/tool trace logs (session-local, regenerated per run)
+.vouch-trace.jsonl
+.xtree-trace.jsonl
+
 # Conformal CR paper: private CHF cohort loader + any cohort-derived artifacts.
 # CHF is partner's clinical data — schema/path/results must never be committed.
 validation/spikes/conformal/data/chf.py
