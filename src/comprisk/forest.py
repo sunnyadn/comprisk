@@ -24,7 +24,7 @@ from comprisk._sklearn_compat import (
 )
 from comprisk._time_grid import coarsen_time_grid, fit_time_grid
 from comprisk._tree import build_tree, predict_tree, predict_tree_chf
-from comprisk._validation import check_inputs
+from comprisk._validation import check_feature_names, check_inputs
 from comprisk.metrics import concordance_index_cr
 
 DEFAULT_SPLIT_NTIME = 10
@@ -259,6 +259,8 @@ class CompetingRiskForest(BaseEstimator):
             if self.nsplit < 0:
                 raise ValueError(f"nsplit must be >= 0; got {self.nsplit}")
             self._resolved_nsplit_ = int(self.nsplit)
+        # Record column names before check_inputs' np.asarray discards them.
+        check_feature_names(self, X, reset=True)
         X, time, event, n_causes = check_inputs(X, time, event)
         self.n_causes_ = n_causes
         self.n_features_in_ = X.shape[1]
@@ -645,6 +647,8 @@ class CompetingRiskForest(BaseEstimator):
     def _prepare_predict_inputs(self, X, ref_fn, hist_fn):
         """Validate X, bin if needed, and pick the per-tree predictor for ``mode``."""
         check_is_fitted(self, "trees_")
+        # Single funnel for predict_cif / predict_chf / predict_risk / score.
+        check_feature_names(self, X, reset=False)
         X = np.asarray(X, dtype=np.float64)
         if X.ndim != 2:
             raise ValueError(f"X must be 2-D; got ndim={X.ndim}")
@@ -885,6 +889,8 @@ class CompetingRiskForest(BaseEstimator):
         ``X_eval`` or use OOB mode if cost is a concern.
         """
         check_is_fitted(self, "trees_")
+        if X_eval is not None:
+            check_feature_names(self, X_eval, reset=False)
         if X_eval is None and y_eval is None:
             from comprisk._importance import _compute_importance_oob_impl
 

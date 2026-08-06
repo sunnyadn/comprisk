@@ -2,7 +2,63 @@
 
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
+
+
+def extract_feature_names(X):
+    """Column names of a DataFrame-like ``X``, or None.
+
+    Implements the SLEP007 rule without depending on sklearn's
+    ``validate_data`` (public only from 1.6, while we declare
+    ``scikit-learn>=1.3``) or its private ``_get_feature_names``.
+
+    Names are returned only when *every* column label is a string, matching
+    sklearn: a mix of strings and integers is ambiguous, so no names are
+    recorded.
+    """
+    columns = getattr(X, "columns", None)
+    if columns is None:
+        return None
+    names = list(columns)
+    if not names or not all(isinstance(name, str) for name in names):
+        return None
+    return np.asarray(names, dtype=object)
+
+
+def check_feature_names(estimator, X, *, reset):
+    """Set or verify ``estimator.feature_names_in_`` against ``X``.
+
+    ``reset=True`` (in ``fit``) records the names, and clears any stale
+    attribute when the new ``X`` is unnamed — refitting must not leave names
+    from a previous fit behind.
+
+    ``reset=False`` (in predict-side methods) warns on a mismatch rather than
+    raising, mirroring sklearn so that a Pipeline whose earlier step drops
+    names stays usable.
+    """
+    names = extract_feature_names(X)
+    if reset:
+        if names is None:
+            # Delete rather than set None: sklearn's contract is that the
+            # attribute is absent when X carried no names.
+            if hasattr(estimator, "feature_names_in_"):
+                del estimator.feature_names_in_
+        else:
+            estimator.feature_names_in_ = names
+        return
+
+    fitted = getattr(estimator, "feature_names_in_", None)
+    if fitted is None or names is None:
+        return
+    if len(fitted) != len(names) or not np.array_equal(fitted, names):
+        warnings.warn(
+            "X has feature names that differ from those seen during fit. "
+            f"Fitted on {list(fitted)}; got {list(names)}.",
+            UserWarning,
+            stacklevel=2,
+        )
 
 
 def check_inputs(X, time, event):

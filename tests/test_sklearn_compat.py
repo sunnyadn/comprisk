@@ -13,8 +13,10 @@ Verifies CompetingRiskForest is a true sklearn-compatible estimator:
 from __future__ import annotations
 
 import inspect
+import warnings
 
 import numpy as np
+import pandas as pd
 import pytest
 from sklearn.base import BaseEstimator, clone
 from sklearn.exceptions import NotFittedError
@@ -206,3 +208,79 @@ def test_regressor_in_pipeline_and_grid_search(cls):
 def _coef_norm(estimator, X, y):
     """Scorer standing in for a real metric — these estimators expose no score()."""
     return float(np.linalg.norm(estimator.coef_))
+
+
+# ---------------------------------------------------------------------------
+# feature_names_in_ (SLEP007)
+# ---------------------------------------------------------------------------
+
+
+def _toy_df(n=150, p=4, seed=0):
+    X, time, event = _toy_cr(n=n, p=p, seed=seed)
+    df = pd.DataFrame(X, columns=[f"feat{i}" for i in range(p)])
+    return df, Surv.from_arrays(event=event, time=time)
+
+
+def test_feature_names_recorded_from_dataframe():
+    df, y = _toy_df()
+    f = CompetingRiskForest(n_estimators=4, random_state=0).fit(df, y)
+    assert list(f.feature_names_in_) == list(df.columns)
+
+
+def test_feature_names_absent_for_ndarray():
+    X, time, event = _toy_cr(n=100, p=3)
+    f = CompetingRiskForest(n_estimators=4, random_state=0).fit(X, time, event)
+    assert not hasattr(f, "feature_names_in_")
+
+
+def test_refit_on_ndarray_clears_feature_names():
+    df, y = _toy_df()
+    f = CompetingRiskForest(n_estimators=4, random_state=0).fit(df, y)
+    assert hasattr(f, "feature_names_in_")
+    f.fit(df.to_numpy(), y)
+    assert not hasattr(f, "feature_names_in_")
+
+
+def test_feature_names_through_pipeline_match_sklearn_semantics():
+    # A transformer emitting ndarray (sklearn's default) legitimately drops the
+    # names, so the final estimator sees none -- sklearn's own estimators behave
+    # identically. They propagate only under set_output(transform="pandas").
+    df, y = _toy_df()
+    plain = Pipeline(
+        [("sc", StandardScaler()), ("f", CompetingRiskForest(n_estimators=4, random_state=0))]
+    ).fit(df, y)
+    assert not hasattr(plain[-1], "feature_names_in_")
+
+    named = Pipeline(
+        [
+            ("sc", StandardScaler().set_output(transform="pandas")),
+            ("f", CompetingRiskForest(n_estimators=4, random_state=0)),
+        ]
+    ).fit(df, y)
+    assert list(named[-1].feature_names_in_) == list(df.columns)
+
+
+def test_non_string_columns_do_not_set_names():
+    df, y = _toy_df()
+    df.columns = range(df.shape[1])  # integer labels — ambiguous, so no names
+    f = CompetingRiskForest(n_estimators=4, random_state=0).fit(df, y)
+    assert not hasattr(f, "feature_names_in_")
+
+
+def test_predict_warns_on_feature_name_mismatch():
+    df, y = _toy_df()
+    f = CompetingRiskForest(n_estimators=4, random_state=0).fit(df, y)
+    renamed = df.rename(columns={"feat0": "renamed"})
+    with pytest.warns(UserWarning, match="feature names"):
+        f.predict_cif(renamed)
+    # matching names stay silent
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        f.predict_cif(df)
+
+
+def test_importance_uses_dataframe_column_names():
+    df, y = _toy_df(n=120, p=3)
+    f = CompetingRiskForest(n_estimators=4, random_state=0, samptype="swr").fit(df, y)
+    imp = f.compute_importance()
+    assert set(imp["feature"]) == set(df.columns)
