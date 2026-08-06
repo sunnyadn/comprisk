@@ -110,3 +110,7 @@ AGENTS.md
 paper/arxiv/
 paper/conformal/
 C3-VERIFY-PROMPT.md
+# Same reason: this README is the results section of the unpublished conformal
+# manuscript (theorem-by-theorem claim map + headline numbers), not a guide to
+# the spike code. The e1-e6 scripts themselves are tracked.
+validation/spikes/conformal/experiments/README.md
