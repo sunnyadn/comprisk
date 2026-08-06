@@ -16,7 +16,11 @@ repos:
       - id: check-yaml
       - id: check-toml
       - id: check-added-large-files
+        # The 500 KB ceiling guards against committing cohort data or binary
+        # blobs; keep it tight and exempt the one legitimate large text file
+        # rather than raising it for everything.
         args: [--maxkb=500]
+        exclude: ^uv\.lock$
       - id: check-merge-conflict
       - id: mixed-line-ending
       - id: detect-private-key

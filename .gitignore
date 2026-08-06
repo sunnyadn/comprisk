@@ -44,7 +44,9 @@ Thumbs.db
 
 # uv
 .python-version
-uv.lock
+# uv.lock IS tracked: CI resolves from it so a new upstream release cannot break
+# a build that touched nothing. A separate non-blocking job still installs
+# latest, so drift stays visible instead of silent.
 
 # Jupyter
 .ipynb_checkpoints/

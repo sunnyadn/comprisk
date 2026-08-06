@@ -37,16 +37,16 @@ jobs:
       - uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
-          cache-dependency-glob: pyproject.toml
+          cache-dependency-glob: uv.lock
 
-      - name: Install dev dependencies
-        run: uv pip install --system -e ".[dev]"
+      - name: Install dev dependencies (locked)
+        run: uv sync --locked --extra dev
 
       - name: Ruff check
-        run: ruff check .
+        run: uv run ruff check .
 
       - name: Ruff format check
-        run: ruff format --check .
+        run: uv run ruff format --check .
 
   test:
     name: Test (Python ${{ matrix.python-version }})
@@ -65,10 +65,41 @@ jobs:
       - uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
-          cache-dependency-glob: pyproject.toml
+          cache-dependency-glob: uv.lock
 
-      - name: Install package with dev extras
-        run: uv pip install --system -e ".[dev]"
+      - name: Install package with dev extras (locked)
+        run: uv sync --locked --extra dev --python ${{ matrix.python-version }}
 
       - name: Run pytest with coverage
-        run: pytest --cov=comprisk --cov-report=term-missing
+        run: uv run pytest --cov=comprisk --cov-report=term-missing
+
+  # The locked jobs above pin every dependency so an unrelated upstream release
+  # cannot break a build that changed nothing. That alone would make us blind:
+  # comprisk declares open ranges (scikit-learn>=1.3) and users install whatever
+  # is current, so a break against latest is a break for them. This job installs
+  # unpinned and reports without gating -- upstream drift becomes a signal we
+  # choose when to act on, instead of a red main branch on an unrelated push.
+  test-latest:
+    name: Test (latest deps, non-blocking)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@v4
+
+      - name: Install package with dev extras (unpinned)
+        run: uv pip install --system -e ".[dev]"
+
+      - name: Show resolved versions
+        run: uv pip list --system | grep -Ei "scikit-learn|numpy|numba|scipy|pandas|ruff"
+
+      - name: Run pytest
+        run: pytest -q
+
+      - name: Ruff
+        run: ruff check . && ruff format --check .
