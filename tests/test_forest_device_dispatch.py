@@ -31,9 +31,13 @@ def test_device_cpu_explicit_skips_detection():
     assert f._effective_device_ == "cpu"
 
 
-def test_device_invalid_raises():
+def test_device_invalid_raises_at_fit_not_init():
+    # sklearn's estimator contract forbids validation in __init__; the check
+    # lives in fit alongside mode / splitrule / samptype.
+    f = CompetingRiskForest(n_estimators=3, device="rocm", random_state=0)
+    X, t, e = _toy()
     with pytest.raises(ValueError, match="device"):
-        CompetingRiskForest(device="rocm")
+        f.fit(X, t, e)
 
 
 def test_device_cuda_with_n_jobs_warns():

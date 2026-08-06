@@ -208,8 +208,6 @@ class CompetingRiskForest(BaseEstimator):
         equivalence: str | None = None,
         device: Literal["auto", "cpu", "cuda"] = "auto",
     ):
-        if device not in {"auto", "cpu", "cuda"}:
-            raise ValueError(f"device must be one of 'auto'/'cpu'/'cuda'; got {device!r}")
         self.n_estimators = n_estimators
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split
@@ -244,6 +242,8 @@ class CompetingRiskForest(BaseEstimator):
             raise ValueError(f"splitrule must be 'logrankCR' or 'logrank'; got {self.splitrule!r}")
         if self.samptype not in ("swor", "swr"):
             raise ValueError(f"samptype must be 'swor' or 'swr'; got {self.samptype!r}")
+        if self.device not in {"auto", "cpu", "cuda"}:
+            raise ValueError(f"device must be one of 'auto'/'cpu'/'cuda'; got {self.device!r}")
         # Resolve `equivalence` preset into the per-fit effective rng_mode /
         # split_ntime / time_grid_max. Validates against explicit conflicting
         # values; the public attributes stay untouched so a second .fit() with

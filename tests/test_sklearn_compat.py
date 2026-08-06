@@ -127,3 +127,24 @@ def test_cross_val_score_with_kfold():
     scores = cross_val_score(f, X, y, cv=cv, n_jobs=1)
     assert scores.shape == (3,)
     assert all(0.0 <= s <= 1.0 for s in scores)
+
+
+# ---------------------------------------------------------------------------
+# __init__ stores without validating (sklearn dev guide: validation belongs
+# in fit, so set_params / clone / GridSearchCV never trip on a bad value)
+# ---------------------------------------------------------------------------
+
+
+def test_init_does_not_validate_device():
+    f = CompetingRiskForest(device="nonsense")
+    assert f.device == "nonsense"
+    assert clone(f).device == "nonsense"
+    f.set_params(device=-1)
+    assert f.device == -1
+
+
+def test_fit_validates_device():
+    X, time, event = _toy_cr(n=60, p=3)
+    f = CompetingRiskForest(n_estimators=2, random_state=0, device="nonsense")
+    with pytest.raises(ValueError, match="device must be one of"):
+        f.fit(X, time, event)
