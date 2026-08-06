@@ -24,7 +24,7 @@ from comprisk._sklearn_compat import (
 )
 from comprisk._time_grid import coarsen_time_grid, fit_time_grid
 from comprisk._tree import build_tree, predict_tree, predict_tree_chf
-from comprisk._validation import check_inputs, record_feature_names, warn_if_feature_names_differ
+from comprisk._validation import check_inputs, record_feature_names, validate_predict_X
 from comprisk.metrics import concordance_index_cr
 
 DEFAULT_SPLIT_NTIME = 10
@@ -647,15 +647,7 @@ class CompetingRiskForest(BaseEstimator):
     def _prepare_predict_inputs(self, X, ref_fn, hist_fn):
         """Validate X, bin if needed, and pick the per-tree predictor for ``mode``."""
         check_is_fitted(self, "trees_")
-        # Single funnel for predict_cif / predict_chf / predict_risk / score.
-        warn_if_feature_names_differ(self, X)
-        X = np.asarray(X, dtype=np.float64)
-        if X.ndim != 2:
-            raise ValueError(f"X must be 2-D; got ndim={X.ndim}")
-        if X.shape[1] != self.n_features_in_:
-            raise ValueError(
-                f"X has wrong n_features: expected {self.n_features_in_}, got {X.shape[1]}"
-            )
+        X = validate_predict_X(self, X)
         if self.mode == "default":
             return apply_bins(X, self.bin_edges_), hist_fn
         return X, ref_fn
@@ -890,7 +882,7 @@ class CompetingRiskForest(BaseEstimator):
         """
         check_is_fitted(self, "trees_")
         if X_eval is not None:
-            warn_if_feature_names_differ(self, X_eval)
+            validate_predict_X(self, X_eval)
         if X_eval is None and y_eval is None:
             from comprisk._importance import _compute_importance_oob_impl
 

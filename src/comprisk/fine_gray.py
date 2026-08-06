@@ -29,7 +29,7 @@ import numpy as np
 from sklearn.base import BaseEstimator
 
 from comprisk._sklearn_compat import is_structured_survival_y, unpack_structured_y
-from comprisk._validation import record_feature_names
+from comprisk._validation import record_feature_names, validate_predict_X
 
 __all__ = ["FineGrayRegression"]
 
@@ -759,9 +759,7 @@ class FineGrayRegression(BaseEstimator):
 
     def predict(self, X) -> np.ndarray:
         """Linear predictor ``X @ coef_``."""
-        X = np.asarray(X, dtype=np.float64)
-        if X.ndim != 2 or X.shape[1] != self.n_features_in_:
-            raise ValueError(f"X must have shape (n_samples, {self.n_features_in_}); got {X.shape}")
+        X = validate_predict_X(self, X)
         return X @ self.coef_
 
     def predict_cumulative_incidence(self, X, times=None) -> np.ndarray:
@@ -782,9 +780,7 @@ class FineGrayRegression(BaseEstimator):
         -------
         F : ndarray, shape (n_samples, n_times)
         """
-        X = np.asarray(X, dtype=np.float64)
-        if X.ndim != 2 or X.shape[1] != self.n_features_in_:
-            raise ValueError(f"X must have shape (n_samples, {self.n_features_in_})")
+        X = validate_predict_X(self, X)
         eta = X @ self.coef_
         Lambda0 = np.cumsum(self._state.baseline_hazard_increments)
         if times is None:

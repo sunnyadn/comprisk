@@ -48,16 +48,36 @@ def warn_if_feature_names_differ(estimator, X):
     step drops names stays usable.
     """
     fitted = getattr(estimator, "feature_names_in_", None)
-    names = extract_feature_names(X)
-    if fitted is None or names is None:
+    if fitted is None:
         return
-    if not np.array_equal(fitted, names):
-        warnings.warn(
-            "X has feature names that differ from those seen during fit. "
-            f"Fitted on {list(fitted)}; got {list(names)}.",
-            UserWarning,
-            stacklevel=2,
+    names = extract_feature_names(X)
+    if names is None or np.array_equal(fitted, names):
+        return
+    warnings.warn(
+        "X has feature names that differ from those seen during fit. "
+        f"Fitted on {list(fitted)}; got {list(names)}.",
+        UserWarning,
+        stacklevel=2,
+    )
+
+
+def validate_predict_X(estimator, X):
+    """Check ``X`` against what ``estimator`` was fitted on and return it as float64.
+
+    The predict-side counterpart of :func:`record_feature_names`: recording
+    ``feature_names_in_`` is only useful if something reads it back, so the name
+    check and the shape checks live together and every X-consuming method calls
+    this one function.
+    """
+    warn_if_feature_names_differ(estimator, X)
+    X = np.asarray(X, dtype=np.float64)
+    if X.ndim != 2:
+        raise ValueError(f"X must be 2-D; got ndim={X.ndim}")
+    if X.shape[1] != estimator.n_features_in_:
+        raise ValueError(
+            f"X has wrong n_features: expected {estimator.n_features_in_}, got {X.shape[1]}"
         )
+    return X
 
 
 def check_inputs(X, time, event):

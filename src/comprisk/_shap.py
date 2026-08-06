@@ -25,7 +25,7 @@ from sklearn.utils.validation import check_is_fitted
 from comprisk._binning import apply_bins
 from comprisk._shap_alg2 import _tree_height, max_path_offset, shap_phi_prange
 from comprisk._tree_flat import FlatTree, flatten_tree
-from comprisk._validation import warn_if_feature_names_differ
+from comprisk._validation import validate_predict_X
 
 # ---------------------------------------------------------------------------
 # Tree representation helpers (cover counts, flattening)
@@ -173,14 +173,7 @@ def shap_values(
         raise ValueError(
             f"time_aggregate must be None or one of {_TIME_AGGREGATORS}; got {time_aggregate!r}"
         )
-    # Per-feature attribution is the output most corrupted by column
-    # misalignment, so it warns like the predict path rather than staying silent.
-    warn_if_feature_names_differ(forest, X)
-    X = np.asarray(X, dtype=np.float64)
-    if X.ndim != 2:
-        raise ValueError(f"X must be 2-D; got ndim={X.ndim}")
-    if X.shape[1] != forest.n_features_in_:
-        raise ValueError(f"X has {X.shape[1]} features; expected {forest.n_features_in_}")
+    X = validate_predict_X(forest, X)
 
     n_features = X.shape[1]
     if times is None:

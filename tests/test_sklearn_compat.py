@@ -151,15 +151,12 @@ def test_cross_val_score_with_kfold():
 
 
 def test_init_does_not_validate_device():
+    # The matching "fit rejects it" half is in tests/test_forest_device_dispatch.py.
     f = CompetingRiskForest(device="nonsense")
     assert f.device == "nonsense"
     assert clone(f).device == "nonsense"
     f.set_params(device=-1)
     assert f.device == -1
-
-
-# The matching "fit rejects it" half lives in
-# tests/test_forest_device_dispatch.py, which owns device behaviour.
 
 
 # ---------------------------------------------------------------------------
@@ -173,6 +170,14 @@ ALL_ESTIMATORS = [
     FineGrayRegression,
     CauseSpecificCox,
 ]
+
+# Keeps test fits fast and deterministic. Only the forest needs anything; the
+# regressors have no such knobs. One table so nothing drifts.
+_FIT_KWARGS = {CompetingRiskForest: {"n_estimators": 4, "random_state": 0}}
+
+
+def _make(cls, **overrides):
+    return cls(**{**_FIT_KWARGS.get(cls, {}), **overrides})
 
 
 @pytest.mark.parametrize("cls", ALL_ESTIMATORS, ids=lambda c: c.__name__)
@@ -224,27 +229,45 @@ def _toy_df(n=150, p=4, seed=0):
     return df, Surv.from_arrays(event=event, time=time)
 
 
-def _fit_any(cls, X, y):
-    """Fit with the per-class kwargs needed to keep the toy problem well-posed."""
-    kwargs = {"n_estimators": 4, "random_state": 0} if cls is CompetingRiskForest else {}
-    return cls(**kwargs).fit(X, y)
-
-
 @pytest.mark.parametrize("cls", ALL_ESTIMATORS, ids=lambda c: c.__name__)
 def test_feature_names_recorded_from_dataframe(cls):
     df, y = _toy_df()
-    assert list(_fit_any(cls, df, y).feature_names_in_) == list(df.columns)
+    assert list(_make(cls).fit(df, y).feature_names_in_) == list(df.columns)
 
 
 @pytest.mark.parametrize("cls", ALL_ESTIMATORS, ids=lambda c: c.__name__)
 def test_feature_names_absent_for_ndarray(cls):
     df, y = _toy_df()
-    assert not hasattr(_fit_any(cls, df.to_numpy(), y), "feature_names_in_")
+    assert not hasattr(_make(cls).fit(df.to_numpy(), y), "feature_names_in_")
+
+
+@pytest.mark.parametrize("cls", ALL_ESTIMATORS, ids=lambda c: c.__name__)
+def test_predict_warns_on_feature_name_mismatch(cls):
+    # Recording feature_names_in_ without reading it back would be worse than
+    # not recording it: the attribute is visible, so users infer it is checked.
+    df, y = _toy_df()
+    est = _make(cls).fit(df, y)
+    renamed = df.rename(columns={"feat0": "renamed"})
+    predict = est.predict_cif if cls is CompetingRiskForest else est.predict
+    with pytest.warns(UserWarning, match="feature names"):
+        predict(renamed)
+    with warnings.catch_warnings():  # matching names stay silent
+        warnings.simplefilter("error")
+        predict(df)
+
+
+def test_shap_warns_on_feature_name_mismatch():
+    # SHAP is per-feature attribution, so a silent misalignment is the most
+    # damaging; it must warn like the predict path.
+    df, y = _toy_df()
+    f = _make(CompetingRiskForest).fit(df, y)
+    with pytest.warns(UserWarning, match="feature names"):
+        f.shap_values(df.rename(columns={"feat0": "renamed"}), times=f.unique_times_[[-1]])
 
 
 def test_refit_on_ndarray_clears_feature_names():
     df, y = _toy_df()
-    f = CompetingRiskForest(n_estimators=4, random_state=0).fit(df, y)
+    f = _make(CompetingRiskForest).fit(df, y)
     assert hasattr(f, "feature_names_in_")
     f.fit(df.to_numpy(), y)
     assert not hasattr(f, "feature_names_in_")
@@ -255,15 +278,13 @@ def test_feature_names_through_pipeline_match_sklearn_semantics():
     # names, so the final estimator sees none -- sklearn's own estimators behave
     # identically. They propagate only under set_output(transform="pandas").
     df, y = _toy_df()
-    plain = Pipeline(
-        [("sc", StandardScaler()), ("f", CompetingRiskForest(n_estimators=4, random_state=0))]
-    ).fit(df, y)
+    plain = Pipeline([("sc", StandardScaler()), ("f", _make(CompetingRiskForest))]).fit(df, y)
     assert not hasattr(plain[-1], "feature_names_in_")
 
     named = Pipeline(
         [
             ("sc", StandardScaler().set_output(transform="pandas")),
-            ("f", CompetingRiskForest(n_estimators=4, random_state=0)),
+            ("f", _make(CompetingRiskForest)),
         ]
     ).fit(df, y)
     assert list(named[-1].feature_names_in_) == list(df.columns)
@@ -272,31 +293,13 @@ def test_feature_names_through_pipeline_match_sklearn_semantics():
 def test_non_string_columns_do_not_set_names():
     df, y = _toy_df()
     df.columns = range(df.shape[1])  # integer labels — ambiguous, so no names
-    f = CompetingRiskForest(n_estimators=4, random_state=0).fit(df, y)
-    assert not hasattr(f, "feature_names_in_")
-
-
-def test_predict_warns_on_feature_name_mismatch():
-    df, y = _toy_df()
-    f = CompetingRiskForest(n_estimators=4, random_state=0).fit(df, y)
-    renamed = df.rename(columns={"feat0": "renamed"})
-    with pytest.warns(UserWarning, match="feature names"):
-        f.predict_cif(renamed)
-    # SHAP is per-feature attribution, so a silent misalignment there is the
-    # most damaging; it must warn like the predict path.
-    with pytest.warns(UserWarning, match="feature names"):
-        f.shap_values(renamed, times=f.unique_times_[[-1]])
-    # matching names stay silent
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
-        f.predict_cif(df)
+    assert not hasattr(_make(CompetingRiskForest).fit(df, y), "feature_names_in_")
 
 
 def test_importance_uses_dataframe_column_names():
     df, y = _toy_df(n=120, p=3)
-    f = CompetingRiskForest(n_estimators=4, random_state=0, samptype="swr").fit(df, y)
-    imp = f.compute_importance()
-    assert set(imp["feature"]) == set(df.columns)
+    f = _make(CompetingRiskForest, samptype="swr").fit(df, y)
+    assert set(f.compute_importance()["feature"]) == set(df.columns)
 
 
 # ---------------------------------------------------------------------------
@@ -354,24 +357,23 @@ _TOLERATED_CHECKS = frozenset(
 )
 
 
+# What both estimators passed when this was written. A subset assertion alone
+# would call a total collapse a success ("no unexpected failures" is vacuously
+# true when every check errors), so the floor is the other half of the gate.
+# Raise it when sklearn upgrades let more checks through.
+_MIN_PASSING_CHECKS = 13
+
+
 @pytest.mark.parametrize(
-    ("cls", "kwargs"),
-    [
-        (CompetingRiskForest, {"n_estimators": 3, "random_state": 0}),
-        (PenalizedFineGrayRegression, {}),
-    ],
-    ids=lambda v: v.__name__ if inspect.isclass(v) else "",
+    "cls", [CompetingRiskForest, PenalizedFineGrayRegression], ids=lambda c: c.__name__
 )
-def test_check_estimator_failures_are_all_expected(cls, kwargs):
+def test_check_estimator_failures_are_all_expected(cls):
     from sklearn.utils.estimator_checks import check_estimator
 
-    results = check_estimator(cls(**kwargs), on_fail=None)
+    results = check_estimator(_make(cls), on_fail=None)
     failed = {r["check_name"] for r in results if r["status"] != "passed"}
     # Subset, not equality: a new sklearn release may add checks we already
     # pass, and pinning the exact set would break on every upgrade.
     unexpected = failed - _TOLERATED_CHECKS
     assert not unexpected, f"{cls.__name__} fails checks it should pass: {sorted(unexpected)}"
-    # 13 checks passed when this was written; a floor catches a collapse that a
-    # subset assertion alone would not (every check erroring out is "no
-    # unexpected failures" too).
-    assert len(results) - len(failed) >= 13
+    assert len(results) - len(failed) >= _MIN_PASSING_CHECKS

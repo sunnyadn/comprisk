@@ -61,7 +61,7 @@ from sklearn.base import BaseEstimator, clone
 from sklearn.utils.validation import check_is_fitted
 
 from comprisk._sklearn_compat import is_structured_survival_y, unpack_structured_y
-from comprisk._validation import record_feature_names
+from comprisk._validation import record_feature_names, validate_predict_X
 from comprisk.fine_gray import (
     _baseline_subdist_hazard,
     _build_event_time_grid,
@@ -985,9 +985,7 @@ class PenalizedFineGrayRegression(BaseEstimator):
     def predict(self, X) -> np.ndarray:
         """Linear predictor ``X @ coef_`` at the selected ``lambda``."""
         check_is_fitted(self, "coef_")
-        X = np.asarray(X, dtype=np.float64)
-        if X.ndim != 2 or X.shape[1] != self.n_features_in_:
-            raise ValueError(f"X must have shape (n_samples, {self.n_features_in_}); got {X.shape}")
+        X = validate_predict_X(self, X)
         return X @ self.coef_
 
     def predict_cumulative_incidence(self, X, times=None) -> np.ndarray:
@@ -1008,9 +1006,7 @@ class PenalizedFineGrayRegression(BaseEstimator):
         F : ndarray, shape (n_samples, n_times)
         """
         check_is_fitted(self, "coef_")
-        X = np.asarray(X, dtype=np.float64)
-        if X.ndim != 2 or X.shape[1] != self.n_features_in_:
-            raise ValueError(f"X must have shape (n_samples, {self.n_features_in_})")
+        X = validate_predict_X(self, X)
         eta = X @ self.coef_
         cum_haz = self._state.baseline_cum_hazard
         if times is None:

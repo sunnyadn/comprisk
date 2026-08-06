@@ -21,7 +21,7 @@ import numpy as np
 from sklearn.base import BaseEstimator
 
 from comprisk._sklearn_compat import is_structured_survival_y, unpack_structured_y
-from comprisk._validation import record_feature_names
+from comprisk._validation import record_feature_names, validate_predict_X
 
 __all__ = ["CauseSpecificCox"]
 
@@ -225,9 +225,7 @@ class CauseSpecificCox(BaseEstimator):
 
     def predict(self, X) -> np.ndarray:
         """Linear predictor ``X @ coef_``."""
-        X = np.asarray(X, dtype=np.float64)
-        if X.ndim != 2 or X.shape[1] != self.n_features_in_:
-            raise ValueError(f"X must have shape (n_samples, {self.n_features_in_})")
+        X = validate_predict_X(self, X)
         return X @ self.coef_
 
     def _unpack_y(self, y, time, event) -> tuple[np.ndarray, np.ndarray]:
