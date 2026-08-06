@@ -121,7 +121,12 @@ line-length = 100
 src = ["src", "tests"]
 # marimo notebooks have their own canonical format (one `def _()` per cell, a
 # bare expression as the cell's last line) that fights ruff's check + format.
-extend-exclude = ["examples"]
+#
+# Markdown: ruff 0.16 began formatting Python inside fenced blocks. Snippets in
+# the README and docs are hand-laid-out for reading -- aligned trailing comments
+# annotating each argument, compact calls that fit one screen -- and the
+# formatter flattens both. They are illustrations, not code we ship or run.
+extend-exclude = ["examples", "*.md"]
 
 [tool.ruff.lint]
 select = [
