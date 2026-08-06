@@ -61,6 +61,7 @@ from sklearn.base import BaseEstimator, clone
 from sklearn.utils.validation import check_is_fitted
 
 from comprisk._sklearn_compat import is_structured_survival_y, unpack_structured_y
+from comprisk._validation import record_feature_names
 from comprisk.fine_gray import (
     _baseline_subdist_hazard,
     _build_event_time_grid,
@@ -769,6 +770,7 @@ class PenalizedFineGrayRegression(BaseEstimator):
         """
         if self.cv is not None and not (isinstance(self.cv, (int, np.integer)) and self.cv >= 2):
             raise ValueError("cv must be None or an integer >= 2")
+        record_feature_names(self, X)
         time_arr, event_arr = self._unpack_y(y, time, event)
         prox_kind, alpha, gamma = self._resolve_penalty()
         (

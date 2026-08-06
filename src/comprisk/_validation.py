@@ -1,4 +1,4 @@
-"""Input validation for CompetingRiskForest.fit."""
+"""Shared input validation for comprisk estimators."""
 
 from __future__ import annotations
 
@@ -27,32 +27,31 @@ def extract_feature_names(X):
     return np.asarray(names, dtype=object)
 
 
-def check_feature_names(estimator, X, *, reset):
-    """Set or verify ``estimator.feature_names_in_`` against ``X``.
+def record_feature_names(estimator, X):
+    """Set ``estimator.feature_names_in_`` from ``X``; call this in ``fit``.
 
-    ``reset=True`` (in ``fit``) records the names, and clears any stale
-    attribute when the new ``X`` is unnamed — refitting must not leave names
-    from a previous fit behind.
-
-    ``reset=False`` (in predict-side methods) warns on a mismatch rather than
-    raising, mirroring sklearn so that a Pipeline whose earlier step drops
-    names stays usable.
+    An unnamed ``X`` clears any attribute left by a previous fit — sklearn's
+    contract is that the attribute is *absent*, not None, when there are no
+    names, and ``fit`` must not leave stale state behind.
     """
     names = extract_feature_names(X)
-    if reset:
-        if names is None:
-            # Delete rather than set None: sklearn's contract is that the
-            # attribute is absent when X carried no names.
-            if hasattr(estimator, "feature_names_in_"):
-                del estimator.feature_names_in_
-        else:
-            estimator.feature_names_in_ = names
-        return
+    if names is None:
+        estimator.__dict__.pop("feature_names_in_", None)
+    else:
+        estimator.feature_names_in_ = names
 
+
+def warn_if_feature_names_differ(estimator, X):
+    """Warn when predict-time column names disagree with those seen in ``fit``.
+
+    Warns rather than raises, mirroring sklearn, so a Pipeline whose earlier
+    step drops names stays usable.
+    """
     fitted = getattr(estimator, "feature_names_in_", None)
+    names = extract_feature_names(X)
     if fitted is None or names is None:
         return
-    if len(fitted) != len(names) or not np.array_equal(fitted, names):
+    if not np.array_equal(fitted, names):
         warnings.warn(
             "X has feature names that differ from those seen during fit. "
             f"Fitted on {list(fitted)}; got {list(names)}.",

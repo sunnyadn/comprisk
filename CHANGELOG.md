@@ -15,10 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`feature_names_in_` on `CompetingRiskForest`** (scikit-learn SLEP007). Fitting
+- **`feature_names_in_` on all four estimators** (scikit-learn SLEP007). Fitting
   on a `DataFrame` now records its column names; fitting on a plain array leaves
   the attribute absent, and refitting on an unnamed `X` clears it. Predict-side
-  methods warn when the names differ from those seen at fit.
+  methods — including `shap_values`, where a silent column misalignment would
+  corrupt every per-feature attribution — warn when the names differ from those
+  seen at fit.
 - **`FineGrayRegression` and `CauseSpecificCox` are now `BaseEstimator`s**, so
   `get_params` / `set_params` / `sklearn.base.clone` work and both can be used
   inside `Pipeline` and `GridSearchCV`. Previously `clone()` raised `TypeError`.

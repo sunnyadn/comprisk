@@ -21,6 +21,7 @@ import numpy as np
 from sklearn.base import BaseEstimator
 
 from comprisk._sklearn_compat import is_structured_survival_y, unpack_structured_y
+from comprisk._validation import record_feature_names
 
 __all__ = ["CauseSpecificCox"]
 
@@ -158,6 +159,7 @@ class CauseSpecificCox(BaseEstimator):
         time, event : array-like, optional
             Legacy three-argument form.
         """
+        record_feature_names(self, X)
         X = np.asarray(X, dtype=np.float64)
         if X.ndim != 2:
             raise ValueError(f"X must be 2-D; got shape {X.shape}")

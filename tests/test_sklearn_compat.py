@@ -158,11 +158,8 @@ def test_init_does_not_validate_device():
     assert f.device == -1
 
 
-def test_fit_validates_device():
-    X, time, event = _toy_cr(n=60, p=3)
-    f = CompetingRiskForest(n_estimators=2, random_state=0, device="nonsense")
-    with pytest.raises(ValueError, match="device must be one of"):
-        f.fit(X, time, event)
+# The matching "fit rejects it" half lives in
+# tests/test_forest_device_dispatch.py, which owns device behaviour.
 
 
 # ---------------------------------------------------------------------------
@@ -190,11 +187,14 @@ def test_estimator_is_base_estimator(cls):
 
 
 @pytest.mark.parametrize("cls", ALL_ESTIMATORS, ids=lambda c: c.__name__)
-def test_set_params_roundtrip(cls):
+def test_set_params_changes_the_value(cls):
+    # Every estimator takes `cause`; set it to something other than the default
+    # so a no-op set_params would fail rather than pass vacuously.
     est = cls()
-    name, value = next(iter(est.get_params().items()))
-    assert est.set_params(**{name: value}) is est
-    assert est.get_params()[name] == value
+    assert est.get_params()["cause"] == 1
+    assert est.set_params(cause=2) is est
+    assert est.get_params()["cause"] == 2
+    assert est.cause == 2
 
 
 @pytest.mark.parametrize("cls", [FineGrayRegression, CauseSpecificCox], ids=lambda c: c.__name__)
@@ -224,16 +224,22 @@ def _toy_df(n=150, p=4, seed=0):
     return df, Surv.from_arrays(event=event, time=time)
 
 
-def test_feature_names_recorded_from_dataframe():
+def _fit_any(cls, X, y):
+    """Fit with the per-class kwargs needed to keep the toy problem well-posed."""
+    kwargs = {"n_estimators": 4, "random_state": 0} if cls is CompetingRiskForest else {}
+    return cls(**kwargs).fit(X, y)
+
+
+@pytest.mark.parametrize("cls", ALL_ESTIMATORS, ids=lambda c: c.__name__)
+def test_feature_names_recorded_from_dataframe(cls):
     df, y = _toy_df()
-    f = CompetingRiskForest(n_estimators=4, random_state=0).fit(df, y)
-    assert list(f.feature_names_in_) == list(df.columns)
+    assert list(_fit_any(cls, df, y).feature_names_in_) == list(df.columns)
 
 
-def test_feature_names_absent_for_ndarray():
-    X, time, event = _toy_cr(n=100, p=3)
-    f = CompetingRiskForest(n_estimators=4, random_state=0).fit(X, time, event)
-    assert not hasattr(f, "feature_names_in_")
+@pytest.mark.parametrize("cls", ALL_ESTIMATORS, ids=lambda c: c.__name__)
+def test_feature_names_absent_for_ndarray(cls):
+    df, y = _toy_df()
+    assert not hasattr(_fit_any(cls, df.to_numpy(), y), "feature_names_in_")
 
 
 def test_refit_on_ndarray_clears_feature_names():
@@ -276,6 +282,10 @@ def test_predict_warns_on_feature_name_mismatch():
     renamed = df.rename(columns={"feat0": "renamed"})
     with pytest.warns(UserWarning, match="feature names"):
         f.predict_cif(renamed)
+    # SHAP is per-feature attribution, so a silent misalignment there is the
+    # most damaging; it must warn like the predict path.
+    with pytest.warns(UserWarning, match="feature names"):
+        f.shap_values(renamed, times=f.unique_times_[[-1]])
     # matching names stay silent
     with warnings.catch_warnings():
         warnings.simplefilter("error")
@@ -361,4 +371,7 @@ def test_check_estimator_failures_are_all_expected(cls, kwargs):
     # pass, and pinning the exact set would break on every upgrade.
     unexpected = failed - _TOLERATED_CHECKS
     assert not unexpected, f"{cls.__name__} fails checks it should pass: {sorted(unexpected)}"
-    assert len(results) - len(failed) > 0
+    # 13 checks passed when this was written; a floor catches a collapse that a
+    # subset assertion alone would not (every check erroring out is "no
+    # unexpected failures" too).
+    assert len(results) - len(failed) >= 13
