@@ -8,5 +8,8 @@ def test_package_imports():
 
 
 def test_version_matches_expected():
-    # Pinned to the current release version. Bump when releasing.
-    assert comprisk.__version__ == "0.7.0"
+    # Compare against installed metadata (pyproject) so __init__ and
+    # pyproject cannot drift apart again (they did for 0.7.1).
+    import importlib.metadata
+
+    assert comprisk.__version__ == importlib.metadata.version("comprisk")
