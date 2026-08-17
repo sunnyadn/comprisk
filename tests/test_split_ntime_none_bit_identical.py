@@ -20,6 +20,11 @@ baseline. History:
   - SUN-44 package rename:        ``b07aa92c..`` / 14801551 bytes (+0, package renamed ``crforest`` → ``comprisk``; both are 8 chars so the qualified class names embedded in the pickle change content but not size — digest only)
   - SUN-83 samptype/sampsize:     ``74866704..`` / 14801611 bytes (+60, ``bootstrap`` bool dropped; ``samptype``/``sampsize`` ctor attrs + ``_resolved_sampsize_``/``_oob_available_`` fitted attrs added. Ctor pins ``samptype="swr"`` (the pre-SUN-83 ``bootstrap=True`` default, same ``rng.choice`` draw) so the trees are bit-identical to the prior anchor — the delta is purely the new object schema, not tree-building.)
 
+  - Compact FlatTree state (v2):  ``91d958c8..`` / 1021996 bytes (-13.8 MB, ``FlatTree.__getstate__`` v2: leaf CIF table dropped (recomputed on load), leaf
+    counts sparse-encoded, topology int32, OOB indices int32. Tree-building
+    unchanged — ``test_serialization.py`` proves round-tripped predictions
+    bit-identical; the delta is purely the serialized representation.)
+
 Future changes that affect ``split_ntime=None`` tree-building behavior
 will drift this digest and flag for investigation.
 """
@@ -33,8 +38,8 @@ import numpy as np
 
 from comprisk import CompetingRiskForest
 
-ANCHOR_SHA256 = "748667046b9a5947784091f7d737a2595ce091e04d6b9a94ab8b0192f53dd9a4"
-ANCHOR_PICKLE_BYTES = 14801611
+ANCHOR_SHA256 = "91d958c82e98a697a8e8a6e8c9916c8733f6c239fd4f51fc0d1498008b5b1c19"
+ANCHOR_PICKLE_BYTES = 1021996
 
 
 def test_split_ntime_none_matches_anchor_digest() -> None:

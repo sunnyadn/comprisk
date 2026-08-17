@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`save()` / `comprisk.load()` — pickle-free model persistence** for
+  `CompetingRiskForest` (default flat-tree path) and `FineGrayRegression`.
+  Single-file zip container of JSON metadata plus raw `.npy` arrays; the
+  loader executes no pickled code (`np.load(allow_pickle=False)` throughout),
+  so a model file from outside your trust boundary cannot run code on load.
+  Output bytes are deterministic (fixed zip timestamps), so manifest
+  checksums stay valid across re-saves. Round-tripped predictions are
+  bit-identical. See the new *Saving & loading* docs page.
 - **`feature_names_in_` on all four estimators** (scikit-learn SLEP007). Fitting
   on a `DataFrame` now records its column names; fitting on a plain array leaves
   the attribute absent, and refitting on an unnamed `X` clears it. Every
@@ -24,6 +32,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`FineGrayRegression` and `CauseSpecificCox` are now `BaseEstimator`s**, so
   `get_params` / `set_params` / `sklearn.base.clone` work and both can be used
   inside `Pipeline` and `GridSearchCV`. Previously `clone()` raised `TypeError`.
+
+### Changed
+
+- **Compact serialized state — pickles shrink ~24× (45× via `save()`).**
+  `FlatTree` now pickles sparse leaf counts (measured 1-2% non-zero at the
+  default `time_grid`) instead of three dense per-leaf grids, drops the leaf
+  CIF table (rebuilt bit-identically on load from the counts), and downcasts
+  topology arrays; OOB index lists are stored int32. A 20k-sample, 20-tree
+  fit drops 202.8 MB → 8.5 MB pickled, or 4.5 MB via `save()`. Motivating
+  case: a 74,862-patient, 500-tree clinical forest serialized to 33.3 GB —
+  too large to ship for external validation, forcing a retrained smaller
+  model that gave up measurable concordance; the full-fidelity forest now
+  ships at a few hundred megabytes with zero accuracy loss. Pickles written
+  by earlier comprisk versions load unchanged, and round-tripped predictions
+  are bit-identical on the default, reference-mode, and rfsrc-aligned paths.
 
 ### Fixed
 

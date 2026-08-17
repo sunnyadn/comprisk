@@ -76,6 +76,7 @@ nav:
   - Home: index.md
   - Quickstart: quickstart.md
   - API reference: reference.md
+  - Saving & loading: persistence.md
   - Benchmarks: benchmarks.md
   - Equivalence vs rfSRC: equivalence-vs-rfsrc.md
   - References: REFERENCES.md

@@ -6,6 +6,7 @@ from comprisk._concordance_ci import (
     concordance_index_ci,
     concordance_index_delta_ci,
 )
+from comprisk._serialize import load
 from comprisk._sklearn_compat import Surv
 from comprisk.cause_specific_cox import CauseSpecificCox
 from comprisk.cumulative_incidence import CumulativeIncidence
@@ -41,5 +42,6 @@ __all__ = [
     "concordance_index_delta_ci",
     "concordance_index_uno_cr",
     "gray_test",
+    "load",
     "score_cr",
 ]
