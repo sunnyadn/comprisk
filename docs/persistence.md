@@ -22,8 +22,10 @@ properties make it the right format for sending models to collaborators:
   unpickles objects — it reads JSON and arrays
   (`np.load(allow_pickle=False)`). A model file from outside your trust
   boundary cannot run code on your machine.
-- **Deterministic bytes.** Saving the same model twice produces identical
-  files, so a checksum recorded in a manifest stays valid across re-saves.
+- **Deterministic bytes.** Saving the same model twice in the same
+  environment produces identical files (fixed zip timestamps), so a checksum
+  recorded in a manifest stays valid across re-saves. Compressed bytes can
+  differ across zlib builds, so verify checksums where the file was written.
 
 `FineGrayRegression` supports the same `save()` / `comprisk.load()` pair.
 `save()` covers the default flat-tree forest; reference-mode and
@@ -53,9 +55,9 @@ Measured on a 20,000-sample, 20-tree synthetic fit (default parameters):
 
 The ratio grows with forest size. On a real 74,862-patient clinical forest
 (500 trees, `min_samples_leaf=3`, 19 features) whose dense-state pickle is
-33.3 GB, `joblib` zlib-3 compression alone measured 484 MB (69×) with
-bit-identical round-tripped predictions; the compact state shrinks it
-further before compression even starts.
+33.3 GB, measured 2026-08-17: the compact pickle is 451 MB (74×) and
+`save()` lands at 112.6 MB (296×) — written in 47 s, loaded in 39 s, with
+bit-identical round-tripped predictions and unchanged held-out concordance.
 
 Loading rebuilds each tree's leaf CIF table from its sparse counts; this is
 a vectorized pass that adds seconds, not minutes, even for forests whose

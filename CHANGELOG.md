@@ -43,8 +43,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fit drops 202.8 MB → 8.5 MB pickled, or 4.5 MB via `save()`. Motivating
   case: a 74,862-patient, 500-tree clinical forest serialized to 33.3 GB —
   too large to ship for external validation, forcing a retrained smaller
-  model that gave up measurable concordance; the full-fidelity forest now
-  ships at a few hundred megabytes with zero accuracy loss. Pickles written
+  model that gave up measurable concordance; measured with this change, the
+  full-fidelity forest pickles at 451 MB (74×) and `save()` lands at
+  112.6 MB (296×) with zero accuracy loss. Pickles written
   by earlier comprisk versions load unchanged, and round-tripped predictions
   are bit-identical on the default, reference-mode, and rfsrc-aligned paths.
 
