@@ -46,7 +46,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   CIF table (rebuilt bit-identically on load from the counts), and downcasts
   topology arrays; OOB index lists are stored int32. A 20k-sample, 20-tree
   fit drops 202.8 MB → 8.4 MB pickled, or 4.6 MB via `save()`. Motivating
-  case: a 74,862-patient, 500-tree clinical forest serialized to 33.3 GB —
+  case: a 500-tree clinical forest, fit on a cohort in the tens of
+  thousands of patients, serialized to 33.3 GB —
   too large to ship for external validation, forcing a retrained smaller
   model that gave up measurable concordance; measured with this change, the
   full-fidelity forest pickles at 444 MB (75×) and `save()` lands at

@@ -53,9 +53,9 @@ Measured on a 20,000-sample, 20-tree synthetic fit (default parameters):
 | Compact state + `joblib.dump(..., compress=("zlib", 3))` | 4.8 MB | 42× |
 | `save()` (compact + deflate) | 4.6 MB | 44× |
 
-The ratio grows with forest size. On a real 74,862-patient clinical forest
-(500 trees, `min_samples_leaf=3`, 19 features) whose dense-state pickle is
-33.3 GB, measured 2026-08-17: the compact pickle is 444 MB (75×) and
+The ratio grows with forest size. On a real clinical forest (500 trees,
+`min_samples_leaf=3`, cohort size in the tens of thousands) whose
+dense-state pickle is 33.3 GB, measured 2026-08-17: the compact pickle is 444 MB (75×) and
 `save()` lands at 116 MB (287×) — written in 21 s, loaded in 40 s, with
 bit-identical round-tripped predictions and unchanged held-out concordance.
 
