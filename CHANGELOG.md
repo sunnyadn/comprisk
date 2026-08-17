@@ -40,12 +40,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   default `time_grid`) instead of three dense per-leaf grids, drops the leaf
   CIF table (rebuilt bit-identically on load from the counts), and downcasts
   topology arrays; OOB index lists are stored int32. A 20k-sample, 20-tree
-  fit drops 202.8 MB → 8.5 MB pickled, or 4.5 MB via `save()`. Motivating
+  fit drops 202.8 MB → 8.4 MB pickled, or 4.6 MB via `save()`. Motivating
   case: a 74,862-patient, 500-tree clinical forest serialized to 33.3 GB —
   too large to ship for external validation, forcing a retrained smaller
   model that gave up measurable concordance; measured with this change, the
-  full-fidelity forest pickles at 451 MB (74×) and `save()` lands at
-  112.6 MB (296×) with zero accuracy loss. Pickles written
+  full-fidelity forest pickles at 444 MB (75×) and `save()` lands at
+  116 MB (287×, written in 21 s, loaded in 40 s) with zero accuracy loss. Pickles written
   by earlier comprisk versions load unchanged, and round-tripped predictions
   are bit-identical on the default, reference-mode, and rfsrc-aligned paths.
 
