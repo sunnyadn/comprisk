@@ -50,7 +50,6 @@ class FlatTree:
             "split_values": _pack_split_values(self.split_values),
             "left_children": self.left_children.astype(np.int32),
             "right_children": self.right_children.astype(np.int32),
-            "is_leaf_flags": self.is_leaf_flags,
             "leaf_idx_of_node": self.leaf_idx_of_node.astype(np.int32),
         }
         if self.leaf_event_counts is not None and self.leaf_at_risk is not None:
@@ -79,8 +78,9 @@ class FlatTree:
         self.split_values = _unpack_split_values(state["split_values"])
         self.left_children = state["left_children"].astype(np.int64)
         self.right_children = state["right_children"].astype(np.int64)
-        self.is_leaf_flags = state["is_leaf_flags"]
         self.leaf_idx_of_node = state["leaf_idx_of_node"].astype(np.int64)
+        # Derivable on both construction paths: leaf_idx is >= 0 exactly at leaves.
+        self.is_leaf_flags = self.leaf_idx_of_node >= 0
         if "leaves" in state:
             from comprisk._estimators import aalen_johansen_from_counts_batched
 
@@ -138,17 +138,10 @@ class FlatTree:
 
 
 def _pack_split_values(sv: np.ndarray) -> np.ndarray:
-    """Downcast integer split values (histogram bin indices) to the smallest
-    sufficient dtype; float thresholds (reference mode) pass through."""
-    if sv.dtype.kind not in "iu" or sv.size == 0:
-        return sv
-    lo, hi = int(sv.min()), int(sv.max())
-    if lo >= 0 and hi <= np.iinfo(np.uint8).max:
+    """Bin indices (n_bins capped at 256) fit uint8; float thresholds and any
+    out-of-range integers pass through unchanged."""
+    if sv.dtype.kind in "iu" and sv.size and int(sv.min()) >= 0 and int(sv.max()) <= 255:
         return sv.astype(np.uint8)
-    if lo >= 0 and hi <= np.iinfo(np.uint16).max:
-        return sv.astype(np.uint16)
-    if np.iinfo(np.int32).min <= lo and hi <= np.iinfo(np.int32).max:
-        return sv.astype(np.int32)
     return sv
 
 
@@ -156,6 +149,8 @@ def _unpack_split_values(sv: np.ndarray) -> np.ndarray:
     return sv.astype(np.int64) if sv.dtype.kind in "iu" else sv
 
 
+# Same encodings as _sparse_leaves.py's per-leaf form; keep the invariants
+# (COO events, implicit t=0 at-risk breakpoint, forward-fill) in sync.
 def pack_leaf_counts(leaf_event_counts: np.ndarray, leaf_at_risk: np.ndarray) -> dict:
     """Sparse-encode per-leaf counts: event counts as leaf-major COO + indptr,
     at-risk rows as step-function breakpoints (implicit breakpoint at t=0), so
@@ -198,9 +193,7 @@ def unpack_leaf_counts(packed: dict) -> tuple[np.ndarray, np.ndarray]:
     ec = np.zeros((n_leaves, n_causes, n_time_bins), dtype=np.uint32)
     ec_counts = np.diff(packed["ec_indptr"])
     l_ec = np.repeat(np.arange(n_leaves, dtype=np.int64), ec_counts)
-    ec[l_ec, packed["ec_cause"].astype(np.int64), packed["ec_time"].astype(np.int64)] = packed[
-        "ec_val"
-    ]
+    ec[l_ec, packed["ec_cause"], packed["ec_time"]] = packed["ec_val"]
 
     ar_indptr = packed["ar_indptr"]
     t_ar = packed["ar_time"].astype(np.int64)

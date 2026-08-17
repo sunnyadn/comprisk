@@ -66,6 +66,7 @@ def test_default_mode_pickle_roundtrip_bit_identical() -> None:
         assert t2.leaf_event_counts.dtype == np.uint32
         assert np.array_equal(t1.leaf_at_risk, t2.leaf_at_risk)
         assert t2.leaf_at_risk.dtype == np.uint32
+        assert np.array_equal(t1.is_leaf_flags, t2.is_leaf_flags)
         for name in ("features", "left_children", "right_children", "leaf_idx_of_node"):
             assert np.array_equal(getattr(t1, name), getattr(t2, name))
             assert getattr(t2, name).dtype == np.int64
@@ -212,7 +213,7 @@ def test_save_uncompressed_and_deterministic_bytes(tmp_path) -> None:
 def test_save_rejects_unsupported_configs(tmp_path) -> None:
     import comprisk
 
-    with pytest.raises(ValueError, match="unfitted"):
+    with pytest.raises(ValueError, match="not fitted"):
         CompetingRiskForest(n_estimators=2).save(tmp_path / "x.crm")
     m_ref, _ = _fit_default(mode="reference", n_estimators=2)
     with pytest.raises(NotImplementedError, match="flat-tree"):
@@ -248,3 +249,27 @@ def test_load_rejects_newer_format_version(tmp_path) -> None:
             zf.writestr(n, blob)
     with pytest.raises(ValueError, match="format_version"):
         comprisk.load(p2)
+
+
+def test_save_load_attribute_completeness(tmp_path) -> None:
+    """Silent-drift guard: a fitted attribute added to fit() but missing from
+    _serialize.py's enumerations shows up as a vars() key-set mismatch."""
+    import comprisk
+    from comprisk import FineGrayRegression
+
+    m, _ = _fit_default(n_estimators=2)
+    m.save(tmp_path / "f.crm")
+    assert set(vars(m)) == set(vars(comprisk.load(tmp_path / "f.crm")))
+    X, time, event = _make_data(n=300)
+    fg = FineGrayRegression(cause=1).fit(X, time=time, event=event)
+    fg.save(tmp_path / "fg.crm")
+    assert set(vars(fg)) == set(vars(comprisk.load(tmp_path / "fg.crm")))
+
+
+def test_fg_state_fields_match_dataclass() -> None:
+    import dataclasses
+
+    from comprisk._serialize import _FG_STATE_ARRAY_FIELDS
+    from comprisk.fine_gray import _FGState
+
+    assert tuple(f.name for f in dataclasses.fields(_FGState)) == _FG_STATE_ARRAY_FIELDS

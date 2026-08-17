@@ -6,17 +6,17 @@ from __future__ import annotations
 
 import json
 import zipfile
-from pathlib import Path
 
 import numpy as np
 
 from comprisk._tree_flat import FlatTree
 
 FORMAT_VERSION = 1
+_TREE_STATE_VERSION = 2  # the FlatTree.__getstate__ layout this container encodes
 _ZIP_EPOCH = (1980, 1, 1, 0, 0, 0)  # fixed timestamp -> deterministic bytes
 
-# Fitted JSON-scalar attributes, enumerated explicitly per class; omissions
-# are caught by the round-trip tests in tests/test_serialization.py.
+# Fitted attributes, enumerated explicitly per class; omissions are caught by
+# the attribute-completeness and consistency tests in tests/test_serialization.py.
 _FOREST_SCALAR_ATTRS = (
     "n_causes_",
     "n_features_in_",
@@ -28,6 +28,20 @@ _FOREST_SCALAR_ATTRS = (
     "_resolved_nsplit_",
     "_effective_device_",
 )
+_FOREST_OPTIONAL_ARRAYS = {
+    "inbag": "inbag_",
+    "cause_weights_arr": "_cause_weights_arr",
+    "X_train_oob": "_X_train_oob_",
+    "y_train_oob": "_y_train_oob_",
+}
+_TREE_TOPO_FIELDS = (
+    "features",
+    "split_values",
+    "left_children",
+    "right_children",
+    "leaf_idx_of_node",
+)
+_TREE_LEAF_FIELDS = ("ec_indptr", "ec_cause", "ec_time", "ec_val", "ar_indptr", "ar_time", "ar_val")
 _FG_SCALAR_ATTRS = (
     "n_features_in_",
     "n_iter_",
@@ -48,6 +62,9 @@ _FG_STATE_ARRAY_FIELDS = (
 def _write_array(zf: zipfile.ZipFile, name: str, arr: np.ndarray) -> None:
     info = zipfile.ZipInfo(f"arrays/{name}.npy", date_time=_ZIP_EPOCH)
     info.compress_type = zf.compression
+    # zf.open(ZipInfo) ignores the ZipFile-level compresslevel (stdlib default
+    # would be level 6, measured ~4.5x slower than 3 for the same ratio here).
+    info._compresslevel = zf.compresslevel
     with zf.open(info, "w") as f:
         np.save(f, np.ascontiguousarray(arr))
 
@@ -60,6 +77,7 @@ def _read_array(zf: zipfile.ZipFile, name: str) -> np.ndarray:
 def _write_meta(zf: zipfile.ZipFile, meta: dict) -> None:
     info = zipfile.ZipInfo("meta.json", date_time=_ZIP_EPOCH)
     info.compress_type = zf.compression
+    info._compresslevel = zf.compresslevel
     try:
         payload = json.dumps(meta, indent=1, sort_keys=True)
     except TypeError as exc:
@@ -80,16 +98,19 @@ def _jsonable_params(estimator) -> dict:
     return {k: (v.tolist() if isinstance(v, np.ndarray) else _py(v)) for k, v in params.items()}
 
 
-def _scalar_attrs(estimator, attrs: tuple[str, ...]) -> dict:
-    return {a: _py(getattr(estimator, a)) for a in attrs}
-
-
-def _concat(arrays: list[np.ndarray]) -> np.ndarray:
-    return np.concatenate(arrays) if arrays else np.empty(0)
+def _base_meta(estimator, cls: str, scalar_attrs: tuple[str, ...]) -> dict:
+    return {
+        "format_version": FORMAT_VERSION,
+        "comprisk_version": _comprisk_version(),
+        "class": cls,
+        "params": _jsonable_params(estimator),
+        "scalars": {a: _py(getattr(estimator, a)) for a in scalar_attrs},
+        "feature_names_in": _feature_names(estimator),
+    }
 
 
 def _split(concat: np.ndarray, lengths: np.ndarray) -> list[np.ndarray]:
-    return np.split(concat, np.cumsum(lengths)[:-1]) if len(lengths) else []
+    return np.split(concat, np.cumsum(lengths)[:-1])
 
 
 # --------------------------------------------------------------------------
@@ -98,9 +119,10 @@ def _split(concat: np.ndarray, lengths: np.ndarray) -> list[np.ndarray]:
 
 
 def _save_forest(forest, zf: zipfile.ZipFile) -> None:
-    trees = getattr(forest, "trees_", None)
-    if trees is None:
-        raise ValueError("Cannot save an unfitted estimator; call fit() first.")
+    from sklearn.utils.validation import check_is_fitted
+
+    check_is_fitted(forest, "trees_")
+    trees = forest.trees_
     if not all(
         isinstance(t, FlatTree) and t.leaf_event_counts is not None and t.leaf_at_risk is not None
         for t in trees
@@ -112,58 +134,38 @@ def _save_forest(forest, zf: zipfile.ZipFile) -> None:
         )
 
     states = [t.__getstate__() for t in trees]
-    leaf_shapes = [s["leaves"]["shape"] for s in states]
-    n_causes, n_time_bins = leaf_shapes[0][1], leaf_shapes[0][2]
+    if any(s["_cst_v"] != _TREE_STATE_VERSION for s in states):
+        raise AssertionError(
+            "FlatTree state version changed; update _save_forest's layout and "
+            "bump FORMAT_VERSION before shipping."
+        )
 
-    meta = {
-        "format_version": FORMAT_VERSION,
-        "comprisk_version": _comprisk_version(),
-        "class": "CompetingRiskForest",
-        "params": _jsonable_params(forest),
-        "scalars": _scalar_attrs(forest, _FOREST_SCALAR_ATTRS),
-        "feature_names_in": _feature_names(forest),
-        "n_trees": len(trees),
-        "leaf_grid": [int(n_causes), int(n_time_bins)],
-        "optional_arrays": {
-            "inbag": forest.inbag_ is not None,
-            "cause_weights_arr": forest._cause_weights_arr is not None,
-            "X_train_oob": forest._X_train_oob_ is not None,
-            "y_train_oob": forest._y_train_oob_ is not None,
-        },
-    }
+    meta = _base_meta(forest, "CompetingRiskForest", _FOREST_SCALAR_ATTRS)
+    meta["n_trees"] = len(trees)
     _write_meta(zf, meta)
 
     # per-tree topology, concatenated on the node axis
-    for field in (
-        "features",
-        "split_values",
-        "left_children",
-        "right_children",
-        "is_leaf_flags",
-        "leaf_idx_of_node",
-    ):
-        _write_array(zf, f"tree_{field}", _concat([s[field] for s in states]))
+    for field in _TREE_TOPO_FIELDS:
+        _write_array(zf, f"tree_{field}", np.concatenate([s[field] for s in states]))
     _write_array(zf, "tree_n_nodes", np.array([len(s["features"]) for s in states], dtype=np.int64))
-    _write_array(zf, "tree_n_leaves", np.array([sh[0] for sh in leaf_shapes], dtype=np.int64))
+    _write_array(
+        zf, "tree_n_leaves", np.array([s["leaves"]["shape"][0] for s in states], dtype=np.int64)
+    )
 
     # sparse leaf counts, concatenated (indptrs are per-tree, each 0-based)
-    for field in ("ec_indptr", "ec_cause", "ec_time", "ec_val", "ar_indptr", "ar_time", "ar_val"):
-        _write_array(zf, f"leaf_{field}", _concat([s["leaves"][field] for s in states]))
+    for field in _TREE_LEAF_FIELDS:
+        _write_array(zf, f"leaf_{field}", np.concatenate([s["leaves"][field] for s in states]))
 
     # forest-level arrays
     _write_array(zf, "time_grid", forest.time_grid_)
-    _write_array(zf, "bin_edges_concat", _concat(list(forest.bin_edges_)))
+    _write_array(zf, "bin_edges_concat", np.concatenate(list(forest.bin_edges_)))
     _write_array(zf, "bin_edges_len", np.array([len(e) for e in forest.bin_edges_], dtype=np.int64))
-    _write_array(zf, "oob_concat", _concat(list(forest.oob_indices_)))
+    _write_array(zf, "oob_concat", np.concatenate(list(forest.oob_indices_)))
     _write_array(zf, "oob_len", np.array([len(o) for o in forest.oob_indices_], dtype=np.int64))
-    if forest.inbag_ is not None:
-        _write_array(zf, "inbag", forest.inbag_)
-    if forest._cause_weights_arr is not None:
-        _write_array(zf, "cause_weights_arr", forest._cause_weights_arr)
-    if forest._X_train_oob_ is not None:
-        _write_array(zf, "X_train_oob", forest._X_train_oob_)
-    if forest._y_train_oob_ is not None:
-        _write_array(zf, "y_train_oob", forest._y_train_oob_)
+    for name, attr in _FOREST_OPTIONAL_ARRAYS.items():
+        value = getattr(forest, attr)
+        if value is not None:
+            _write_array(zf, name, value)
 
 
 def _load_forest(meta: dict, zf: zipfile.ZipFile):
@@ -175,44 +177,36 @@ def _load_forest(meta: dict, zf: zipfile.ZipFile):
     if meta["feature_names_in"] is not None:
         forest.feature_names_in_ = np.asarray(meta["feature_names_in"], dtype=object)
 
-    n_causes, n_time_bins = meta["leaf_grid"]
+    forest.time_grid_ = _read_array(zf, "time_grid")
+    forest.unique_times_ = forest.time_grid_
+    n_causes = int(meta["scalars"]["n_causes_"])
+    n_time_bins = len(forest.time_grid_)
+
     n_nodes = _read_array(zf, "tree_n_nodes")
     n_leaves = _read_array(zf, "tree_n_leaves")
-    topo = {
-        field: _split(_read_array(zf, f"tree_{field}"), n_nodes)
-        for field in (
-            "features",
-            "split_values",
-            "left_children",
-            "right_children",
-            "is_leaf_flags",
-            "leaf_idx_of_node",
-        )
-    }
+    topo = {field: _split(_read_array(zf, f"tree_{field}"), n_nodes) for field in _TREE_TOPO_FIELDS}
     ec_indptr = _split(_read_array(zf, "leaf_ec_indptr"), n_leaves + 1)
     ar_indptr = _split(_read_array(zf, "leaf_ar_indptr"), n_leaves + 1)
     ec_nnz = np.array([ip[-1] for ip in ec_indptr], dtype=np.int64)
     ar_nnz = np.array([ip[-1] for ip in ar_indptr], dtype=np.int64)
-    ec_cause = _split(_read_array(zf, "leaf_ec_cause"), ec_nnz)
-    ec_time = _split(_read_array(zf, "leaf_ec_time"), ec_nnz)
-    ec_val = _split(_read_array(zf, "leaf_ec_val"), ec_nnz)
-    ar_time = _split(_read_array(zf, "leaf_ar_time"), ar_nnz)
-    ar_val = _split(_read_array(zf, "leaf_ar_val"), ar_nnz)
+    leaves = {"ec_indptr": ec_indptr, "ar_indptr": ar_indptr}
+    for field, nnz in (
+        ("ec_cause", ec_nnz),
+        ("ec_time", ec_nnz),
+        ("ec_val", ec_nnz),
+        ("ar_time", ar_nnz),
+        ("ar_val", ar_nnz),
+    ):
+        leaves[field] = _split(_read_array(zf, f"leaf_{field}"), nnz)
 
     trees = []
     for i in range(meta["n_trees"]):
         state = {
-            "_cst_v": 2,
-            **{field: topo[field][i] for field in topo},
+            "_cst_v": _TREE_STATE_VERSION,
+            **{field: topo[field][i] for field in _TREE_TOPO_FIELDS},
             "leaves": {
                 "shape": (int(n_leaves[i]), n_causes, n_time_bins),
-                "ec_indptr": ec_indptr[i],
-                "ec_cause": ec_cause[i],
-                "ec_time": ec_time[i],
-                "ec_val": ec_val[i],
-                "ar_indptr": ar_indptr[i],
-                "ar_time": ar_time[i],
-                "ar_val": ar_val[i],
+                **{field: leaves[field][i] for field in _TREE_LEAF_FIELDS},
             },
         }
         tree = FlatTree.__new__(FlatTree)
@@ -220,19 +214,13 @@ def _load_forest(meta: dict, zf: zipfile.ZipFile):
         trees.append(tree)
     forest.trees_ = trees
 
-    forest.time_grid_ = _read_array(zf, "time_grid")
-    forest.unique_times_ = forest.time_grid_
     forest.bin_edges_ = _split(
         _read_array(zf, "bin_edges_concat"), _read_array(zf, "bin_edges_len")
     )
     forest.oob_indices_ = _split(_read_array(zf, "oob_concat"), _read_array(zf, "oob_len"))
-    opt = meta["optional_arrays"]
-    forest.inbag_ = _read_array(zf, "inbag") if opt["inbag"] else None
-    forest._cause_weights_arr = (
-        _read_array(zf, "cause_weights_arr") if opt["cause_weights_arr"] else None
-    )
-    forest._X_train_oob_ = _read_array(zf, "X_train_oob") if opt["X_train_oob"] else None
-    forest._y_train_oob_ = _read_array(zf, "y_train_oob") if opt["y_train_oob"] else None
+    present = set(zf.namelist())
+    for name, attr in _FOREST_OPTIONAL_ARRAYS.items():
+        setattr(forest, attr, _read_array(zf, name) if f"arrays/{name}.npy" in present else None)
     return forest
 
 
@@ -242,17 +230,10 @@ def _load_forest(meta: dict, zf: zipfile.ZipFile):
 
 
 def _save_fine_gray(model, zf: zipfile.ZipFile) -> None:
-    if not hasattr(model, "coef_"):
-        raise ValueError("Cannot save an unfitted estimator; call fit() first.")
-    meta = {
-        "format_version": FORMAT_VERSION,
-        "comprisk_version": _comprisk_version(),
-        "class": "FineGrayRegression",
-        "params": _jsonable_params(model),
-        "scalars": _scalar_attrs(model, _FG_SCALAR_ATTRS),
-        "feature_names_in": _feature_names(model),
-    }
-    _write_meta(zf, meta)
+    from sklearn.utils.validation import check_is_fitted
+
+    check_is_fitted(model, "coef_")
+    _write_meta(zf, _base_meta(model, "FineGrayRegression", _FG_SCALAR_ATTRS))
     for attr in _FG_ARRAY_ATTRS:
         _write_array(zf, attr, np.asarray(getattr(model, attr)))
     for field in _FG_STATE_ARRAY_FIELDS:
@@ -292,7 +273,7 @@ _LOADERS = {
 def _comprisk_version() -> str:
     import comprisk
 
-    return getattr(comprisk, "__version__", "unknown")
+    return comprisk.__version__
 
 
 def _feature_names(estimator) -> list | None:
@@ -304,7 +285,6 @@ def save_estimator(estimator, path, *, compress: bool = True) -> None:
     cls = type(estimator).__name__
     if cls not in _SAVERS:
         raise NotImplementedError(f"save() is not implemented for {cls}")
-    path = Path(path)
     compression = zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED
     with zipfile.ZipFile(path, "w", compression=compression, compresslevel=3) as zf:
         _SAVERS[cls](estimator, zf)
@@ -313,7 +293,6 @@ def save_estimator(estimator, path, *, compress: bool = True) -> None:
 def load(path):
     """Load an estimator saved with ``estimator.save(path)``; executes no
     pickled code (JSON metadata plus ``np.load(allow_pickle=False)`` arrays)."""
-    path = Path(path)
     with zipfile.ZipFile(path) as zf:
         try:
             meta = json.loads(zf.read("meta.json"))
