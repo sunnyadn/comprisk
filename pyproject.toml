@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "comprisk"
-version = "0.7.1"
+version = "0.8.0"
 description = "Python toolkit for competing risks: forest (RSF) + (penalized) Fine-Gray subdistribution regression + Aalen-Johansen cumulative incidence + Gray's K-sample test + cause-specific Cox. Scales to n=10⁶ in ~1 min, 10–22× faster than randomForestSRC on real EHR data, scikit-learn-compatible."
 readme = "README.md"
 license = "Apache-2.0"

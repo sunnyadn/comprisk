@@ -21,7 +21,7 @@ from comprisk.metrics import (
 )
 from comprisk.penalized_fine_gray import PenalizedFineGrayRegression
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 
 __all__ = [
     "CauseSpecificCox",

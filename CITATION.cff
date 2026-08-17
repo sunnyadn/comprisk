@@ -21,8 +21,8 @@ abstract: >-
   sandwich SEs) and a much faster forest TreeSHAP. Renamed from `crforest`
   in 0.3.1.
 type: software
-version: 0.7.1
-date-released: 2026-07-07
+version: 0.8.0
+date-released: 2026-08-17
 doi: 10.5281/zenodo.19876282
 identifiers:
   - type: other

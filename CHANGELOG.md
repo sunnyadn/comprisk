@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > `from crforest import …` was the supported form for those versions. See
 > the 0.3.1 entry below for the migration recipe.
 
-## [Unreleased]
+## [0.8.0] — 2026-08-17
 
 ### Added
 
@@ -35,6 +35,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking (pre-1.0):** `PenalizedFineGrayRegression.predict`,
+  `predict_cumulative_incidence`, and `coef_at` raise
+  `sklearn.exceptions.NotFittedError` instead of `RuntimeError` when called
+  before `fit`. `NotFittedError` subclasses both `ValueError` and
+  `AttributeError`, so only callers catching `RuntimeError` are affected.
 - **Compact serialized state — pickles shrink ~24× (44× via `save()`).**
   `FlatTree` now pickles sparse leaf counts (measured 1-2% non-zero at the
   default `time_grid`) instead of three dense per-leaf grids, drops the leaf
@@ -63,14 +68,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `X must be 2-D; got ndim=1` and a wrong width reports `X has wrong n_features:
   expected 3, got 9`, matching what the forest already raised. Still `ValueError`
   — only the message text changed.
-
-### Changed
-
-- **Breaking (pre-1.0):** `PenalizedFineGrayRegression.predict`,
-  `predict_cumulative_incidence`, and `coef_at` raise
-  `sklearn.exceptions.NotFittedError` instead of `RuntimeError` when called
-  before `fit`. `NotFittedError` subclasses both `ValueError` and
-  `AttributeError`, so only callers catching `RuntimeError` are affected.
 
 ## [0.7.1] — 2026-07-07
 
