@@ -1,27 +1,6 @@
-"""Pickle-free persistence for fitted comprisk estimators.
-
-``estimator.save(path)`` writes a single zip container:
-
-- ``meta.json`` — format version, comprisk version, class name, constructor
-  params, and scalar fitted attributes.
-- ``arrays/<name>.npy`` — one entry per array, written with ``np.save`` and
-  read back with ``np.load(allow_pickle=False)``.
-
-``comprisk.load(path)`` reconstructs the estimator. The loader executes no
-pickled code: everything passes through ``json.loads`` and
-``np.load(allow_pickle=False)``, so a model file from an untrusted
-collaborator cannot run code on load (unlike pickle). Output bytes are
-deterministic for a given model (fixed zip timestamps, sorted JSON keys), so
-container checksums are stable across re-saves.
-
-Forest support covers the default flat-tree path (``mode="default"``, no
-rfsrc equivalence); reference-mode and rfsrc-aligned forests are research /
-cross-library-parity configurations and still persist via pickle.
-
-Tree payloads reuse the compact ``FlatTree`` v2 state (sparse leaf counts,
-CIF table recomputed on load), concatenated across trees per field so a
-500-tree forest stays at ~30 zip entries instead of ~6500.
-"""
+"""Pickle-free persistence: ``save()`` writes zip(meta.json + raw ``.npy``
+arrays); ``comprisk.load()`` rebuilds via json + ``np.load(allow_pickle=False)``,
+so no pickled code executes on load. Full docs: docs/persistence.md."""
 
 from __future__ import annotations
 
@@ -36,9 +15,8 @@ from comprisk._tree_flat import FlatTree
 FORMAT_VERSION = 1
 _ZIP_EPOCH = (1980, 1, 1, 0, 0, 0)  # fixed timestamp -> deterministic bytes
 
-# Fitted attributes that are JSON scalars, per class. Enumerated explicitly:
-# adding a fitted attribute to fit() without extending these lists is caught
-# by the round-trip equality test in tests/test_serialization.py.
+# Fitted JSON-scalar attributes, enumerated explicitly per class; omissions
+# are caught by the round-trip tests in tests/test_serialization.py.
 _FOREST_SCALAR_ATTRS = (
     "n_causes_",
     "n_features_in_",
@@ -333,11 +311,8 @@ def save_estimator(estimator, path, *, compress: bool = True) -> None:
 
 
 def load(path):
-    """Load an estimator saved with ``estimator.save(path)``.
-
-    Executes no pickled code: the file is JSON metadata plus raw arrays
-    (``np.load(allow_pickle=False)``).
-    """
+    """Load an estimator saved with ``estimator.save(path)``; executes no
+    pickled code (JSON metadata plus ``np.load(allow_pickle=False)`` arrays)."""
     path = Path(path)
     with zipfile.ZipFile(path) as zf:
         try:

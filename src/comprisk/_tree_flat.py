@@ -157,14 +157,9 @@ def _unpack_split_values(sv: np.ndarray) -> np.ndarray:
 
 
 def pack_leaf_counts(leaf_event_counts: np.ndarray, leaf_at_risk: np.ndarray) -> dict:
-    """Sparse-encode per-leaf counts for serialization.
-
-    Event counts (measured ~1-2% non-zero at default time_grid) go to
-    leaf-major COO with a CSR-style indptr; the monotone non-increasing
-    at-risk rows go to step-function breakpoints (every row keeps an
-    implicit breakpoint at t=0). Sizes scale with in-bag samples instead
-    of n_leaves x n_causes x n_time_bins.
-    """
+    """Sparse-encode per-leaf counts: event counts as leaf-major COO + indptr,
+    at-risk rows as step-function breakpoints (implicit breakpoint at t=0), so
+    size scales with in-bag samples, not n_leaves x n_causes x n_time_bins."""
     n_leaves, n_causes, n_time_bins = leaf_event_counts.shape
     l_ec, c_ec, t_ec = np.nonzero(leaf_event_counts)
     vals_ec = leaf_event_counts[l_ec, c_ec, t_ec]

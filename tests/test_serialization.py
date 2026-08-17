@@ -1,9 +1,6 @@
-"""Pickle round-trip tests for the v2 compact FlatTree state.
-
-The v2 state drops the recomputable leaf CIF table and stores leaf counts
-sparsely; every test's acceptance bar is bit-identical predictions after a
-pickle round-trip, with array-level asserts alongside to localize failures.
-"""
+"""Round-trip tests for the v2 compact FlatTree state and save()/load():
+the acceptance bar is bit-identical predictions, with array-level asserts
+alongside to localize failures."""
 
 from __future__ import annotations
 

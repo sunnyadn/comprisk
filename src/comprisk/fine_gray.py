@@ -758,10 +758,8 @@ class FineGrayRegression(BaseEstimator):
         return inv_info @ meat @ inv_info
 
     def save(self, path, *, compress: bool = True) -> None:
-        """Write the fitted model to ``path`` in comprisk's pickle-free format.
-
-        See :meth:`CompetingRiskForest.save`; load with :func:`comprisk.load`.
-        """
+        """Write the fitted model to ``path`` in comprisk's pickle-free format;
+        see :meth:`CompetingRiskForest.save`. Load with :func:`comprisk.load`."""
         from comprisk._serialize import save_estimator
 
         save_estimator(self, path, compress=compress)

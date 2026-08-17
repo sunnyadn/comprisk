@@ -619,16 +619,9 @@ class CompetingRiskForest(BaseEstimator):
         return idx, oob
 
     def save(self, path, *, compress: bool = True) -> None:
-        """Write the fitted forest to ``path`` in comprisk's pickle-free format.
-
-        The file is a zip container of JSON metadata and raw ``.npy`` arrays;
-        :func:`comprisk.load` reconstructs the estimator without executing any
-        pickled code, and round-tripped predictions are bit-identical. With
-        ``compress=True`` (deflate) the file is typically ~50-150x smaller
-        than a plain pickle of the same forest. Supported for the default
-        flat-tree path; reference-mode and rfsrc-aligned forests persist via
-        pickle instead.
-        """
+        """Write the fitted forest to ``path`` in comprisk's pickle-free zip
+        format; reload with :func:`comprisk.load` (bit-identical predictions,
+        no code execution on load). Default flat-tree path only."""
         from comprisk._serialize import save_estimator
 
         save_estimator(self, path, compress=compress)
