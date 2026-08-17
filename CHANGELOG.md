@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Compact serialized state — pickles shrink ~24× (45× via `save()`).**
+- **Compact serialized state — pickles shrink ~24× (44× via `save()`).**
   `FlatTree` now pickles sparse leaf counts (measured 1-2% non-zero at the
   default `time_grid`) instead of three dense per-leaf grids, drops the leaf
   CIF table (rebuilt bit-identically on load from the counts), and downcasts
