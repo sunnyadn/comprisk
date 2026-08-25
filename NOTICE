@@ -1,2 +1,6 @@
 comprisk
 Copyright 2026 comprisk contributors
+
+Validation against R reference implementations (cmprsk, crrp, survival,
+riskRegression, randomForestSRC) is done in the source repository.
+No third-party source code is included in this distribution.

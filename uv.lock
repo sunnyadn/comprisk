@@ -288,7 +288,7 @@ wheels = [
 
 [[package]]
 name = "comprisk"
-version = "0.8.1"
+version = "0.8.0"
 source = { editable = "." }
 dependencies = [
     { name = "joblib" },

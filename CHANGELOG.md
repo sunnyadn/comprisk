@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > `from crforest import …` was the supported form for those versions. See
 > the 0.3.1 entry below for the migration recipe.
 
-## [0.8.1] — 2026-08-17
+## [Unreleased]
 
 ### Changed
 

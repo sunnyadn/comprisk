@@ -10,9 +10,9 @@ The package is also informed by reference behaviour from
 [`randomForestSRC`](https://cran.r-project.org/package=randomForestSRC)
 (rfSRC; Ishwaran & Kogalur, GPL-3 licensed), which was used as a
 benchmarking target during development. The implementation under
-`src/comprisk/` is independent — see the per-module clean-room rewrite
-commits — and its public API uses the string `equivalence='rfsrc'`
-purely as a behavioural label, not as a redistributed component.
+`src/comprisk/` is independent, and its public API uses the string
+`equivalence='rfsrc'` purely as a behavioural label, not as a
+redistributed component.
 
 The validation harness under `validation/alignment/_rfsrc_patches/`
 contains GPL-3 patches against the rfSRC C source for instrumentation
@@ -60,11 +60,25 @@ The two-stage seed-derivation bookkeeping in `derive_per_tree_seeds`
 another `2*ntree` times and record the negation of each post-step
 state, with a skip-zero loop) is empirically determined to align our
 stream-B output with a specific reference implementation we benchmark
-against. It is six lines of integer arithmetic — far below the
-threshold of copyrightable expression — and is documented inline at
+against. It is six lines of integer arithmetic and is documented inline at
 the function's docstring.
 
 ---
+
+## Cumulative incidence and K-sample testing (`src/comprisk/cumulative_incidence.py`, `src/comprisk/gray_test.py`)
+
+* **Aalen, O.O. & Johansen, S.** (1978). "An empirical transition matrix for
+  non-homogeneous Markov chains based on censored observations."
+  *Scandinavian Journal of Statistics* 5(3): 141-150.
+  → Source of the Aalen-Johansen estimator of the cause-specific cumulative
+  incidence function used throughout the package, including the forest's
+  leaf-level CIF tables.
+
+* **Gray, R.J.** (1988). "A class of K-sample tests for comparing the
+  cumulative incidence of a competing risk." *The Annals of Statistics*
+  16(3): 1141-1154. DOI 10.1214/aos/1176350951.
+  → Source of the K-sample test statistic and its variance implemented in
+  `gray_test.py`, validated against `cmprsk::cuminc`'s Tests output.
 
 ## Concordance metrics (`src/comprisk/metrics.py`)
 
@@ -101,6 +115,13 @@ the function's docstring.
     censoring-`G` term), validated to agree with the nonparametric bootstrap
     and with survC1's perturbation inference.
 
+* The paired comparison `concordance_index_delta_ci` forms
+  `C(A) - C(B)` from the two influence-function expansions above. Its
+  standard error is the sample second moment of `phi_A - phi_B`, which is
+  the usual influence-function variance of a difference of two asymptotically
+  linear estimators evaluated on the same subjects under the same IPCW
+  weights. No additional method is introduced.
+
 * **Cole, S.R. & Hernán, M.A.** (2008). "Constructing inverse probability
   weights for marginal structural models." *American Journal of
   Epidemiology* 168(6): 656–664.
@@ -128,6 +149,25 @@ the function's docstring.
   `1e-12..1e-6`. Annotated inline.
 
 ---
+
+## TreeSHAP attributions (`src/comprisk/_shap.py`, `src/comprisk/_shap_alg2.py`)
+
+* **Lundberg, S.M., Erion, G., Chen, H., DeGrave, A., Prutkin, J.M., Nair, B.,
+  Katz, R., Himmelfarb, J., Bansal, N., Lee, S.-I.** (2020). "From local
+  explanations to global understanding with explainable AI for trees."
+  *Nature Machine Intelligence* 2(1): 56-67. DOI 10.1038/s42256-019-0138-9.
+  → Source of the exact TreeSHAP path-dependent algorithm ("Algorithm 2",
+  EXTEND / UNWIND / unwound-path-sum recursion) implemented in
+  `_shap_alg2.py`.
+
+  comprisk applies that published algorithm unchanged to leaves whose value
+  is a `(n_causes, n_times)` cumulative-incidence tensor rather than a
+  scalar. Because a Shapley value is linear in the leaf value, the
+  recursion produces structural weights `W` once and the attributions are
+  recovered as `phi = W @ leaf_table`. This is a computational
+  reorganisation of the cited algorithm, not a different attribution
+  estimand: for any fixed `(cause, time)` the returned values are the
+  TreeSHAP values of that scalar output.
 
 ## Permutation variable importance (`src/comprisk/_importance.py`)
 

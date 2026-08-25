@@ -26,7 +26,7 @@ the academic-defensibility narrative of the library.
   the cross-library `p95 |ΔCIF|` from ~0.057 to ~0.005 on hd (the
   Z-cell numerical floor). This empirically validates the
   decomposition: ~90% of the production residual IS the stream-
-  independence RNG effect, recoverable by porting rfSRC's ran1 LCG
+  independence RNG effect, recoverable by reproducing rfSRC's ran1 LCG
   and per-node permissible-mask logic.
 
 ## The three tiers
@@ -562,7 +562,7 @@ evidence — each one independent, none relying on elimination:
 ##### Uno IPCW closure (2026-04-25)
 
   comprisk now ships `metrics.compute_uno_weights` +
-  `metrics.concordance_index_uno_cr` (faithful port of rfSRC's
+  `metrics.concordance_index_uno_cr` (verified per-cell against rfSRC's
   `get.uno.weights.train` + `getCRConcordanceIndexIPCW_Fenwick`), and
   `forest.compute_importance()` uses Uno IPCW C-index for OOB scoring
   by default. This was scoped to close the 0.74 component of the hd

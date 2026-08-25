@@ -116,3 +116,4 @@ C3-VERIFY-PROMPT.md
 # manuscript (theorem-by-theorem claim map + headline numbers), not a guide to
 # the spike code. The e1-e6 scripts themselves are tracked.
 validation/spikes/conformal/experiments/README.md
+paper/pyopensci/

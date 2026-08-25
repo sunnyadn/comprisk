@@ -10,8 +10,8 @@ that any reviewer with the cited cohort access can rerun.
 
 ## vs randomForestSRC, matched-pair across hardware
 
-Real CHF cohort, HF / death competing risks; n = 75 278 train / p = 58,
-ntree = 100, leaf = 3, nsplit = 10, seeds 42–44 (mean wall):
+Real CHF cohort, HF / death competing risks; tens of thousands of training
+rows and several dozen features, ntree = 100, leaf = 3, nsplit = 10, seeds 42–44 (mean wall):
 
 | Hardware | comprisk (`n_jobs=-1`) | rfSRC OMP-on | Speedup | RSS ratio |
 |---|---|---|---|---|
@@ -52,16 +52,15 @@ C-index columns are listed using each library's own native scorer
 paths and **should not be subtracted directly**; both report C ≈ 0.85
 which is the durable claim. The SEER speedup (11.6×) is materially
 smaller than CHF's 19.8× on the same HPC silicon because rfSRC's
-per-split exhaustive scan scales with p, and SEER has ~3× fewer
-features (p = 17 vs p = 58); the 10–22× cross-dataset band tracks p
-directly. Reproducible via
+per-split exhaustive scan scales with p, and SEER has roughly three times
+fewer features; the 10–22× cross-dataset band tracks p directly. Reproducible via
 [`validation/comparisons/seer_path_b.py`](https://github.com/sunnyadn/comprisk/blob/main/validation/comparisons/seer_path_b.py)
 (requires your own SEER Research Data agreement; setup in
 [`validation/comparisons/SEER_README.md`](https://github.com/sunnyadn/comprisk/blob/main/validation/comparisons/SEER_README.md)).
 
 ## Scaling on the synthetic Weibull DGP
 
-![Wall time vs n on i7-14700K — comprisk vs randomForestSRC vs scikit-survival, synthetic 2-cause Weibull, p=58, ntree=100. Crforest reaches n=10⁶ in 63 s; rfSRC and sksurv scale super-linearly and become impractical past n≈50k.](figures/scaling_curve.svg)
+![Wall time vs n on i7-14700K — comprisk vs randomForestSRC vs scikit-survival, synthetic 2-cause Weibull, ntree=100. Crforest reaches n=10⁶ in 63 s; rfSRC and sksurv scale super-linearly and become impractical past n≈50k.](figures/scaling_curve.svg)
 
 Three libraries on identical synthetic data: comprisk sub-linear
 (≈ n^0.7), rfSRC and sksurv super-linear (rfSRC ≈ n^2.0, sksurv ≈ n^2.2).
@@ -74,8 +73,8 @@ binary-heavy, which rfSRC's exhaustive split scan handles relatively well.
 
 ## vs scikit-survival, paired same machine
 
-i7-14700K, 28 threads, synthetic 2-cause Weibull DGP, p = 58, ntree =
-100, both libraries at their best config (`n_jobs=-1`; sksurv
+i7-14700K, 28 threads, synthetic 2-cause Weibull DGP at the CHF cohort's feature width,
+ntree = 100, both libraries at their best config (`n_jobs=-1`; sksurv
 `low_memory=True`):
 
 | n | sksurv `low_memory=True` | comprisk | speedup |
