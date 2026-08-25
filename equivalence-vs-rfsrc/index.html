@@ -1,0 +1,2151 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Python toolkit for competing risks — a scalable, scikit-learn-compatible random survival forest plus Fine-Gray, Aalen-Johansen, Gray's test, and cause-specific Cox.">
+      
+      
+      
+        <link rel="canonical" href="https://sunnyadn.github.io/comprisk/equivalence-vs-rfsrc/">
+      
+      
+        <link rel="prev" href="../benchmarks/">
+      
+      
+        <link rel="next" href="../REFERENCES/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Equivalence vs rfSRC - comprisk</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#equivalence-vs-randomforestsrc" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="comprisk" class="md-header__button md-logo" aria-label="comprisk" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            comprisk
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Equivalence vs rfSRC
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/sunnyadn/comprisk" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    sunnyadn/comprisk
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="comprisk" class="md-nav__button md-logo" aria-label="comprisk" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    comprisk
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/sunnyadn/comprisk" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    sunnyadn/comprisk
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../persistence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Saving & loading
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Equivalence vs rfSRC
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Equivalence vs rfSRC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#tldr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TL;DR
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-three-tiers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The three tiers
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The three tiers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tier-1-algorithmic-bit-identity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tier 1 — algorithmic bit-identity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tier-3-production-statistical-equivalence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tier 3 — production statistical equivalence
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tier 3 — production statistical equivalence">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#quantile-dominance-of-the-cross-lib-cif" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quantile-dominance of the cross-lib |ΔCIF|
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cause-1-c-index-paired-seed-agreement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cause-1 C-index paired-seed agreement
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tier-2-residual-decomposition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tier 2 — residual decomposition
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-this-means-for-an-academic-user" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What this means for an academic user
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What this means for an academic user">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#correctness-evidence-12-axes-all-directly-observed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Correctness evidence (12 axes, all directly observed)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-the-cross-lib-vimp-spearman-against-rfsrc-default-is-moderate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why the cross-lib VIMP Spearman against rfSRC default is moderate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-to-use-this-for-downstream-defense" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How to use this for downstream defense
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#uno-ipcw-closure-2026-04-25" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Uno IPCW closure (2026-04-25)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stopping-rule-sensitivity-of-phase-1c" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stopping-rule sensitivity of Phase 1c
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reproduce-the-evidence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reproduce the evidence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#glossary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Glossary
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../REFERENCES/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    References
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#tldr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TL;DR
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-three-tiers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The three tiers
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The three tiers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tier-1-algorithmic-bit-identity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tier 1 — algorithmic bit-identity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tier-3-production-statistical-equivalence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tier 3 — production statistical equivalence
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tier 3 — production statistical equivalence">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#quantile-dominance-of-the-cross-lib-cif" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quantile-dominance of the cross-lib |ΔCIF|
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cause-1-c-index-paired-seed-agreement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cause-1 C-index paired-seed agreement
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tier-2-residual-decomposition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tier 2 — residual decomposition
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-this-means-for-an-academic-user" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What this means for an academic user
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What this means for an academic user">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#correctness-evidence-12-axes-all-directly-observed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Correctness evidence (12 axes, all directly observed)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-the-cross-lib-vimp-spearman-against-rfsrc-default-is-moderate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why the cross-lib VIMP Spearman against rfSRC default is moderate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-to-use-this-for-downstream-defense" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How to use this for downstream defense
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#uno-ipcw-closure-2026-04-25" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Uno IPCW closure (2026-04-25)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stopping-rule-sensitivity-of-phase-1c" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stopping-rule sensitivity of Phase 1c
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reproduce-the-evidence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reproduce the evidence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#glossary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Glossary
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="equivalence-vs-randomforestsrc">Equivalence vs randomForestSRC<a class="headerlink" href="#equivalence-vs-randomforestsrc" title="Permanent link">&para;</a></h1>
+<p>This document characterizes how closely comprisk matches randomForestSRC
+(rfSRC) on competing-risks tasks, why any residual gap exists, and what
+commands reproduce the evidence. It is the single source of truth for
+the academic-defensibility narrative of the library.</p>
+<h2 id="tldr">TL;DR<a class="headerlink" href="#tldr" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Algorithmic equivalence (Tier 1)</strong>: with every source of randomness
+  removed from both libraries, comprisk and rfSRC produce <strong>bit-identical</strong>
+  competing-risks CIF predictions on the <code>hd</code> dataset.</li>
+<li><strong>Production statistical equivalence (Tier 3)</strong>: across all four gate
+  datasets (<code>pbc</code>, <code>follic</code>, <code>hd</code>, <code>synthetic</code>), the cross-library
+  <code>p95 |ΔCIF|</code> is within each library's own paired-seed variance — the
+  scientifically principled "noise-floor" equivalence criterion.</li>
+<li><strong>Residual decomposition (Tier 2)</strong>: the <code>~0.05</code> p95 CIF gap at
+  production config is <strong>~90% RNG-independence</strong> (each library runs
+  bootstrap, mtry, and nsplit draws from its own RNG stream) and
+  <strong>~10% implementation-level numerical noise</strong> (float accumulation
+  order, tiebreak in split-winner selection). None of it is
+  algorithmic divergence.</li>
+<li><strong>Reproducible production-config alignment (Tier 1+)</strong>: setting
+  <code>CompetingRiskForest(rng_mode="rfsrc_aligned")</code> and supplying
+  <code>bootstrap="by.user"</code> with a matched in-bag matrix to rfSRC collapses
+  the cross-library <code>p95 |ΔCIF|</code> from ~0.057 to ~0.005 on hd (the
+  Z-cell numerical floor). This empirically validates the
+  decomposition: ~90% of the production residual IS the stream-
+  independence RNG effect, recoverable by reproducing rfSRC's ran1 LCG
+  and per-node permissible-mask logic.</li>
+</ul>
+<h2 id="the-three-tiers">The three tiers<a class="headerlink" href="#the-three-tiers" title="Permanent link">&para;</a></h2>
+<h3 id="tier-1-algorithmic-bit-identity">Tier 1 — algorithmic bit-identity<a class="headerlink" href="#tier-1-algorithmic-bit-identity" title="Permanent link">&para;</a></h3>
+<p>Holding the data constant and removing all sources of randomness, do
+the two tree-construction + CIF-estimation kernels produce the same
+output?</p>
+<p><strong>Yes on 2 of 4 gate datasets at full deterministic config</strong>
+(<code>samptype="swor", sampsize=1.0</code>, <code>max_features=p</code>, <code>nsplit=0</code>,
+<code>n_estimators=1</code>, <code>split_ntime=None</code>, rfSRC <code>ntime=0</code>):</p>
+<table>
+<thead>
+<tr>
+<th>dataset</th>
+<th><code>cross_p95_cif</code> at G cell</th>
+<th>note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pbc</td>
+<td><strong>0.0000</strong></td>
+<td>bit-identical</td>
+</tr>
+<tr>
+<td>hd</td>
+<td><strong>0.0000</strong></td>
+<td>bit-identical</td>
+</tr>
+<tr>
+<td>follic</td>
+<td>0.0366</td>
+<td>small-n tiebreak residual (~4pp)</td>
+</tr>
+<tr>
+<td>synthetic</td>
+<td>0.5635</td>
+<td><strong>stopping-rule semantic mismatch</strong> (see below); not a kernel gap</td>
+</tr>
+</tbody>
+</table>
+<p>On pbc and hd this proves the underlying log-rank computation, split
+selection given identical candidates, tree construction given
+identical data, and leaf-level Aalen–Johansen CIF estimation are
+mathematically equivalent. The default-config gap cannot be a kernel
+bug on these datasets.</p>
+<p>Follic's 0.037 is a small-n split-tiebreak residual (single-tree,
+only 433 training samples, many near-tied log-rank statistics whose
+tiebreak rule differs marginally between libs).</p>
+<p>Synthetic's large gap at ntree=1 has been <strong>causally attributed via
+intervention</strong> to <strong>discretization-grid mismatch between comprisk's
+256-quantile feature grid and rfSRC's sorted-observation candidate
+set</strong>. Evidence flow (measure → localize → intervene):</p>
+<ol>
+<li><strong>Winner feature agrees at root</strong> on every seed on every dataset
+   directly observed via the root-level feat_stat_CR traces
+   (<a href="https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/rank_flip_diagnostic.py"><code>validation/alignment/rank_flip_diagnostic.py</code></a>).
+   No feature-rank flip at the root.</li>
+<li><strong>Per-feature stat dev depends on feature type</strong>: 0.0%
+   bit-identical on hd (binary/ordinal features → integer-only
+   partition arithmetic) vs up to 49% on synthetic (continuous
+   features → float cumulative-sum accumulation order differs
+   between comprisk's histogram-bin cumsum and rfSRC's sort-based
+   sequential update).</li>
+<li><strong>Ruled out</strong> earlier candidates: time-grid truncation
+   (<code>time_grid=2000</code> lossless makes gap worse, 0.78 vs 0.56),
+   stopping-rule mismatch as sole cause (<code>min_samples_split ∈ {6..400}</code>
+   sweep produces non-monotonic [0.46, 0.82] with minimum at
+   comprisk-shallower-than-rfSRC).</li>
+<li><strong>Same-partition alignment directly measured</strong> (closes the
+  attribution): for each comprisk quantile-bin boundary, map to the
+  left-size it produces (count of training samples sent left);
+  match against rfSRC's sorted-observation boundaries (where
+  obs_j = left-size directly). On matching left-sizes the two
+  libraries evaluate the identical partition, and their stats can
+  be compared apples-to-apples.</li>
+</ol>
+<p>Across 10 synthetic seeds:
+  - <strong>Same-partition cross-lib stat deviation is tight</strong>:
+    p95 <strong>0.11%-0.21%</strong>, median 0.04%-0.11%, max 0.26%-1.59%.
+  - <strong>Within-winner top-2 margin (median ~0.3%) is typically
+    LARGER than same-partition deviation (p95 ~0.15%)</strong>. So float
+    accumulation noise at the partition level is <em>not</em> enough to
+    flip the argmax bin in the common case. An earlier reading
+    ("numerical noise is sufficient to flip argmax") was
+    overstated — it compared stats from <em>different</em> partitions
+    across libs, which conflated partition-level arithmetic noise
+    with the candidate-set mismatch below.
+  - <strong>4/10 seeds (3, 6, 7, 10): roots ACTUALLY agree</strong> on the
+    partition (both libs pick the same left-size = 375/544/491/550).
+    These were previously mis-flagged as "split-bin drift at root"
+    by the coarse diagnostic that compared integer bin-indices
+    (comprisk quantile-bin vs rfSRC sorted-observation) instead of
+    the partition they induce.
+  - <strong>6/10 seeds (1, 2, 4, 5, 8, 9): rfSRC's best partition has a
+    left-size NOT IN comprisk's 256-quantile grid at all</strong>.
+    comprisk picks the nearest available left-size (off by 1-3
+    samples) and the trees diverge from there. This is
+    <strong>discretization mismatch</strong>, not numerical noise.</p>
+<ul>
+<li><strong>Cascade directly walked</strong>
+  (<a href="https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/cascade_diagnostic.py"><code>validation/alignment/cascade_diagnostic.py</code></a>):
+  fits the same single-tree config in both libs, extracts per-node
+  (depth, size, winner_feat, left-size) in DFS order, and walks
+  both sequences synchronously. At each pair where (depth, size)
+  match, both libs are evaluating the same population at the same
+  position, so winner choice is directly comparable. Per-seed
+  first-divergence on 10 synthetic seeds:</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>seed</th>
+<th>cr total nodes</th>
+<th>rf total nodes</th>
+<th>first-div depth</th>
+<th>first-div mechanism</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>501</td>
+<td>364</td>
+<td>0 (root)</td>
+<td>grid_mismatch (cr=537, rf=538)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>469</td>
+<td>365</td>
+<td>0 (root)</td>
+<td>grid_mismatch (cr=544, rf=541)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>465</td>
+<td>364</td>
+<td>1</td>
+<td>feature_flip (cr=feat3, rf=feat1)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>472</td>
+<td>369</td>
+<td>0 (root)</td>
+<td>grid_mismatch (cr=559, rf=557)</td>
+</tr>
+<tr>
+<td>5</td>
+<td>527</td>
+<td>366</td>
+<td>0 (root)</td>
+<td>grid_mismatch (cr=441, rf=442)</td>
+</tr>
+<tr>
+<td>6</td>
+<td>510</td>
+<td>380</td>
+<td>1</td>
+<td>grid_mismatch (cr=231, rf=229)</td>
+</tr>
+<tr>
+<td>7</td>
+<td>454</td>
+<td>371</td>
+<td>1</td>
+<td>grid_mismatch (cr=219, rf=217)</td>
+</tr>
+<tr>
+<td>8</td>
+<td>415</td>
+<td>379</td>
+<td>0 (root)</td>
+<td>grid_mismatch (cr=572, rf=573)</td>
+</tr>
+<tr>
+<td>9</td>
+<td>458</td>
+<td>360</td>
+<td>0 (root)</td>
+<td>grid_mismatch (cr=550, rf=566)</td>
+</tr>
+<tr>
+<td>10</td>
+<td>502</td>
+<td>363</td>
+<td>none in 9 in-sync nodes</td>
+<td>— (stopping-rule divergence only)</td>
+</tr>
+</tbody>
+</table>
+<p>Directly observed distribution of first-divergence mechanisms:
+  - <strong>8/9 (~89%): grid_mismatch</strong> (rfSRC's chosen left-size is not
+    in comprisk's 256-quantile grid for that feature).
+  - <strong>1/9 (~11%): feature_flip</strong> at depth 1 on seed 3 (depth 1,
+    node size 375: comprisk picks feature 3, rfSRC picks feature 1).
+  - <strong>Seed 10</strong> stays in lockstep for 9+ DFS nodes then the trees
+    structurally diverge via stopping-rule / leaf classification
+    (one lib calls a node a leaf while the other keeps splitting)
+    — no winner-choice divergence observed within the measurable
+    window.</p>
+<p>Interpretation: the dominant first-divergence cause is
+  discretization-grid mismatch at or near the root. Trees then
+  grow to visibly different totals at max growth (cr=415-527 vs
+  rf=360-380 nodes) because once populations differ they cannot
+  reconverge. Feature-rank flips exist (1 seed in 10) but are
+  subdominant.</p>
+<ul>
+<li><strong>Falsification test — grid_mismatch directly confirmed as
+  dominant</strong>
+  (<a href="https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/grid_mismatch_falsification.py"><code>validation/alignment/grid_mismatch_falsification.py</code></a>):
+  re-ran synthetic F-cell (ntree=1, bootstrap=F, nsplit=0, mtry=p,
+  min_samples_split=30 / rfSRC nodesize=15, split_ntime=None,
+  rfSRC ntime=0, 10 seeds) with comprisk in <code>mode="reference"</code>
+  instead of the default <code>mode="default"</code>. Reference mode
+  evaluates splits at every midpoint between sorted unique values
+  — the same candidate set rfSRC uses — so turns off the
+  discretization-grid mismatch mechanism without changing anything
+  else:</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>config</th>
+<th>cross_p95_cif (median over 10 seeds)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mode="default"</code> (256-quantile)</td>
+<td><strong>0.548</strong></td>
+</tr>
+<tr>
+<td><code>mode="reference"</code> (observation-level)</td>
+<td><strong>0.065</strong></td>
+</tr>
+<tr>
+<td>reference / default</td>
+<td><strong>0.118</strong> (~88% gap removed)</td>
+</tr>
+</tbody>
+</table>
+<p>Flipping off the grid-mismatch mechanism collapsed the synthetic
+  F-cell gap by 88%. This is the direct causal test (intervene on
+  X, measure change in Y), not a correlation or an inference.
+  The residual 0.065 in reference mode is consistent with the
+  secondary mechanisms (per-partition float accumulation noise
+  ~0.1-0.2% at the partition level, stopping-rule edge cases,
+  Lau formula rearrangement) — none of which individually exceed
+  the dominant grid-mismatch contribution.</p>
+<p>Why this is not the default: reference mode evaluates O(n · p)
+  candidate splits per node vs O(256 · p) for the histogram mode,
+  so it is substantially slower at production n. The histogram
+  mode was adopted for the 24× → 9× fit-time reduction in the ε
+  sprint. Users who need exact algorithmic parity with rfSRC on
+  continuous-feature datasets can select <code>mode="reference"</code>
+  with the cost-performance trade-off documented in the PRD.</p>
+<p>This localization refines two earlier conjectures in this document
+that turned out to be incorrect or over-stated:</p>
+<ul>
+<li>A previous version claimed "Root split matches (<code>feat=0,
+  threshold=0.4234</code> identical in both libs)". That was wrong on
+  synthetic: the winning feature matches, but the chosen split
+  bin does not, and downstream populations diverge starting at
+  the root's children.</li>
+<li>An earlier framing attributed the gap primarily to "rank-flip
+  cascade" (features with near-tied top log-rank stats where
+  numerical noise flips which feature wins). The diagnostic
+  finds that feature-rank flips are a secondary, sub-tree-only
+  mechanism; the dominant root-level divergence is split-bin
+  drift within an already-agreed winner feature.</li>
+</ul>
+<p>This divergence is <strong>specific to ntree=1 diagnostics</strong>. It does
+NOT propagate to the production ensemble:</p>
+<ul>
+<li>Phase 1c on synthetic at ntree=500: <code>cross_p95_cif = 0.031</code>
+  (full quantile table in Tier 2 below).</li>
+<li>Tier 3 default-config on synthetic: <code>cross_p95_cif = 0.032</code>
+  (noise-floor PASS, 15× smaller than within-lib seed variance).</li>
+</ul>
+<p>Bottom line on synthetic: the ntree=1 gap comes from float-
+accumulation-order divergence in continuous-feature log-rank
+evaluation. It washes out in the 500-tree ensemble because the
+trees disagree on each <em>specific</em> tree but concentrate around the
+same ensemble mean.</p>
+<p>Reproduce:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Tier 1 G cell (sweep A..G):</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>uv<span class="w"> </span>run<span class="w"> </span>--extra<span class="w"> </span>maintainer<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>validation.alignment.tiebreak_diagnostic<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span>--dataset<span class="w"> </span>hd<span class="w"> </span>--seeds<span class="w"> </span><span class="m">10</span><span class="w"> </span>--configs<span class="w"> </span>G_strict_alignment
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="c1"># Root-divergence localization (same-partition alignment) on synthetic:</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>uv<span class="w"> </span>run<span class="w"> </span>--extra<span class="w"> </span>maintainer<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>validation.alignment.rank_flip_diagnostic<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span>--dataset<span class="w"> </span>synthetic<span class="w"> </span>--seed<span class="w"> </span><span class="m">1</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="c1"># Cascade walk across 10 seeds (first-divergence depth + mechanism):</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>uv<span class="w"> </span>run<span class="w"> </span>--extra<span class="w"> </span>maintainer<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>validation.alignment.cascade_diagnostic<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span>--dataset<span class="w"> </span>synthetic<span class="w"> </span>--seeds<span class="w"> </span><span class="m">10</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="c1"># Falsification test (toggle grid_mismatch off via mode=&quot;reference&quot;):</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>uv<span class="w"> </span>run<span class="w"> </span>--extra<span class="w"> </span>maintainer<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>validation.alignment.grid_mismatch_falsification<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">    </span>--seeds<span class="w"> </span><span class="m">10</span>
+</code></pre></div>
+Sources: <a href="https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/tiebreak_diagnostic.py"><code>validation/alignment/tiebreak_diagnostic.py</code></a>,
+<a href="https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/rank_flip_diagnostic.py"><code>validation/alignment/rank_flip_diagnostic.py</code></a>,
+<a href="https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/cascade_diagnostic.py"><code>validation/alignment/cascade_diagnostic.py</code></a>,
+<a href="https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/grid_mismatch_falsification.py"><code>validation/alignment/grid_mismatch_falsification.py</code></a>.</p>
+<h3 id="tier-3-production-statistical-equivalence">Tier 3 — production statistical equivalence<a class="headerlink" href="#tier-3-production-statistical-equivalence" title="Permanent link">&para;</a></h3>
+<p>At production config (<code>bootstrap=True</code>, <code>max_features="sqrt"</code>,
+<code>nsplit=10</code>, <code>n_estimators=500</code>), is the cross-library agreement at
+least as tight as each library's own seed-to-seed variance?</p>
+<p><strong>Yes, on all four gate datasets.</strong> The gate contract
+(<code>apply_tolerance</code> in
+<a href="https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/equivalence_gate.py"><code>validation/alignment/equivalence_gate.py</code></a>)
+declares <code>overall_pass</code> if <code>cross_p95 ≤ max(within_cr_p95,
+within_rf_p95)</code> for both CIF and risk metrics, across 20 paired seeds.</p>
+<p>Measured on <code>commit 35b005b</code> at production config (see
+<a href="https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/strict_alignment.py"><code>validation/alignment/strict_alignment.py</code></a>
+for the variant without time-grid coarsening, which yields
+equivalent numbers):</p>
+<table>
+<thead>
+<tr>
+<th>dataset</th>
+<th>cross_p95_cif</th>
+<th>within_cr_p95_cif</th>
+<th>within_rf_p95_cif</th>
+<th>cross within noise floor?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pbc</td>
+<td>0.0117</td>
+<td>0.1108</td>
+<td>0.1005</td>
+<td>yes (cross ≈ 10× smaller)</td>
+</tr>
+<tr>
+<td>follic</td>
+<td>0.0437</td>
+<td>0.3452</td>
+<td>0.3856</td>
+<td>yes (cross ≈ 8× smaller)</td>
+</tr>
+<tr>
+<td>hd</td>
+<td>0.0570</td>
+<td>0.2833</td>
+<td>0.3120</td>
+<td>yes (cross ≈ 5× smaller)</td>
+</tr>
+<tr>
+<td>synthetic</td>
+<td>0.0316</td>
+<td>0.4583</td>
+<td>0.4680</td>
+<td>yes (cross ≈ 15× smaller)</td>
+</tr>
+</tbody>
+</table>
+<p>The cross-library gap is an order of magnitude below each library's
+own seed variance on every dataset — the natural equivalence scale
+for a stochastic method.</p>
+<h4 id="quantile-dominance-of-the-cross-lib-cif">Quantile-dominance of the cross-lib <code>|ΔCIF|</code><a class="headerlink" href="#quantile-dominance-of-the-cross-lib-cif" title="Permanent link">&para;</a></h4>
+<p>The p95 number summarises the 95th percentile; the full shape of the
+cross-lib gap distribution (at production default config) is:</p>
+<table>
+<thead>
+<tr>
+<th>dataset</th>
+<th>q0.50</th>
+<th>q0.75</th>
+<th>q0.90</th>
+<th>q0.95</th>
+<th>q0.99</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pbc</td>
+<td>0.0015</td>
+<td>0.0043</td>
+<td>0.0083</td>
+<td>0.0117</td>
+<td>0.0164</td>
+</tr>
+<tr>
+<td>follic</td>
+<td>0.0128</td>
+<td>0.0233</td>
+<td>0.0352</td>
+<td>0.0437</td>
+<td>0.0664</td>
+</tr>
+<tr>
+<td>hd</td>
+<td>0.0143</td>
+<td>0.0270</td>
+<td>0.0446</td>
+<td>0.0570</td>
+<td>0.0861</td>
+</tr>
+<tr>
+<td>synthetic</td>
+<td>0.0083</td>
+<td>0.0160</td>
+<td>0.0250</td>
+<td>0.0316</td>
+<td>0.0440</td>
+</tr>
+</tbody>
+</table>
+<p>Even at q0.99 (the 1%-worst subjects/times), the gap stays below or
+at the heuristic 0.05 cap on pbc, follic (just over), and synthetic,
+and is comparable to it on hd. Bulk agreement (q0.50/q0.75) is small
+fractions of a percentage point.</p>
+<h4 id="cause-1-c-index-paired-seed-agreement">Cause-1 C-index paired-seed agreement<a class="headerlink" href="#cause-1-c-index-paired-seed-agreement" title="Permanent link">&para;</a></h4>
+<p>The equivalence audit also reports time-independent risk-ranking
+agreement via the cause-specific concordance index
+(<code>comprisk.metrics.concordance_index_cr</code>) computed on each seed's
+test fold (risk = CIF at the last reference-grid time). 20 seeds,
+paired (0,1), (2,3), …, 9 within-lib pairs per library:</p>
+<table>
+<thead>
+<tr>
+<th>dataset</th>
+<th>mean C (comprisk)</th>
+<th>mean C (rfSRC)</th>
+<th>cross max ΔC</th>
+<th>within cr max ΔC</th>
+<th>within rf max ΔC</th>
+<th>noise-floor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pbc</td>
+<td>0.763</td>
+<td>0.756</td>
+<td>0.082</td>
+<td>0.257</td>
+<td>0.248</td>
+<td>PASS (3.1× smaller)</td>
+</tr>
+<tr>
+<td>follic</td>
+<td>0.574</td>
+<td>0.573</td>
+<td>0.025</td>
+<td>0.131</td>
+<td>0.095</td>
+<td>PASS (5.2×)</td>
+</tr>
+<tr>
+<td>hd</td>
+<td>0.561</td>
+<td>0.558</td>
+<td>0.017</td>
+<td>0.040</td>
+<td>0.046</td>
+<td>PASS (2.7×)</td>
+</tr>
+<tr>
+<td>synthetic</td>
+<td>0.677</td>
+<td>0.677</td>
+<td>0.007</td>
+<td>0.093</td>
+<td>0.100</td>
+<td>PASS (13×)</td>
+</tr>
+</tbody>
+</table>
+<p>Cross-lib C-index differences are 2.7× to 13× smaller than each
+library's own within-lib paired-seed variance. 4/4 PASS noise-floor
+on C-index as well. Reproduce with
+<a href="https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/cindex_from_cache.py"><code>validation.alignment.cindex_from_cache</code></a>
+against the cached equivalence-gate cells.</p>
+<p><strong>Advisory (hard cap)</strong>: a legacy heuristic <code>cross_p95 ≤ 0.05</code>
+threshold is reported for context but does not drive <code>overall_pass</code>.
+Two of four datasets (hd, follic) exceed this cap at production
+config; the reasons are characterized in Tier 2 below and are not
+algorithmic.</p>
+<p>Reproduce:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--extra<span class="w"> </span>maintainer<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>validation.alignment.equivalence_gate
+</code></pre></div></p>
+<h3 id="tier-2-residual-decomposition">Tier 2 — residual decomposition<a class="headerlink" href="#tier-2-residual-decomposition" title="Permanent link">&para;</a></h3>
+<p>At production config the cross-library <code>p95 |ΔCIF|</code> on hd is <code>0.0573</code>.
+Where does it come from, given that the kernels are provably
+equivalent (Tier 1)?</p>
+<p><strong>Config sweep A → G</strong> on <code>hd</code> with 10 seeds (see
+<a href="https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/tiebreak_diagnostic.py"><code>validation/alignment/tiebreak_diagnostic.py</code></a>):</p>
+<table>
+<thead>
+<tr>
+<th>cell</th>
+<th>bootstrap</th>
+<th>mtry</th>
+<th>nsplit</th>
+<th>ntree</th>
+<th>split_ntime</th>
+<th>hd cross_p95_cif</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td>T</td>
+<td>sqrt</td>
+<td>10</td>
+<td>500</td>
+<td>50</td>
+<td>0.0573</td>
+</tr>
+<tr>
+<td>B</td>
+<td>F</td>
+<td>sqrt</td>
+<td>10</td>
+<td>500</td>
+<td>50</td>
+<td>0.0741</td>
+</tr>
+<tr>
+<td>C</td>
+<td>F</td>
+<td>full</td>
+<td>10</td>
+<td>500</td>
+<td>50</td>
+<td>0.0226</td>
+</tr>
+<tr>
+<td>D</td>
+<td>F</td>
+<td>full</td>
+<td>0</td>
+<td>500</td>
+<td>50</td>
+<td>0.0431</td>
+</tr>
+<tr>
+<td>E</td>
+<td>F</td>
+<td>full</td>
+<td>0</td>
+<td>1</td>
+<td>50</td>
+<td>0.0431</td>
+</tr>
+<tr>
+<td>F</td>
+<td>F</td>
+<td>full</td>
+<td>0</td>
+<td>1</td>
+<td>None</td>
+<td><strong>0.0000</strong></td>
+</tr>
+<tr>
+<td>G</td>
+<td>F</td>
+<td>full</td>
+<td>0</td>
+<td>1</td>
+<td>None + rf ntime=0</td>
+<td><strong>0.0000</strong></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><code>A → B</code> (bootstrap off): gap rises. Bootstrap is <em>helpful</em>, not the
+  source of divergence — both libraries benefit from shared variance
+  reduction.</li>
+<li><code>B → C</code> (mtry = p instead of sqrt(p)): gap falls 3×. Feature
+  subsampling with independent RNG streams is the single biggest
+  production-level contributor.</li>
+<li><code>C → D</code> (exhaustive candidates): gap rises slightly — at exhaustive
+  nsplit, the per-tree split_ntime=50 coarsening in comprisk's log-rank
+  evaluation emerges as a visible bias.</li>
+<li><code>D → E → F</code>: the fully-deterministic single-tree limit bit-matches
+  when split_ntime=None. G confirms rfSRC ntime=150 is irrelevant on
+  hd (follic sees a small additional effect).</li>
+</ul>
+<p><strong>Definitive decomposition — the Z cell</strong> (see
+<a href="https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/z_cell_spike.py"><code>validation/alignment/z_cell_spike.py</code></a>):
+use rfSRC's <code>bootstrap="by.user"</code> with an externally-supplied in-bag
+matrix built from comprisk's numpy RNG, plus <code>mtry=p</code>, <code>nsplit=0</code>,
+<code>ntree=500</code>, <code>split_ntime=None</code>, and rfSRC <code>ntime=0</code>. This removes
+every RNG-driven choice (bootstrap is aligned, mtry/nsplit are
+removed) while keeping the 500-tree ensemble.</p>
+<table>
+<thead>
+<tr>
+<th>dataset</th>
+<th>A default</th>
+<th>Z (all RNG aligned/removed)</th>
+<th>reduction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>hd</td>
+<td>0.0573</td>
+<td><strong>0.0054</strong></td>
+<td>90.6%</td>
+</tr>
+<tr>
+<td>follic</td>
+<td>0.0457</td>
+<td><strong>0.0127</strong></td>
+<td>72.2%</td>
+</tr>
+</tbody>
+</table>
+<p>Interpretation of the components:</p>
+<ol>
+<li><strong>RNG independence across libraries</strong> accounts for 72–90% of the
+   production gap. Each library draws bootstrap samples, mtry feature
+   subsets, and nsplit candidate subsets from its own RNG stream.
+   rfSRC uses a custom <code>ran1</code> LCG (from Numerical Recipes) with four
+   per-tree streams; comprisk uses numpy Mersenne-Twister. Even with
+   matching "seed" integers, the resulting random choices differ.</li>
+<li><strong>Non-RNG residual</strong> ≈ 0.005 (hd) / 0.013 (follic). Persists after
+   every RNG source is removed or aligned. Dominant source,
+   <strong>directly measured</strong> via the rank-flip diagnostic at the root
+   on synthetic (10 seeds), matching partitions by left-size so the
+   two libs are compared on the <em>same</em> split of samples:</li>
+<li><strong>Discretization-grid mismatch dominates</strong>: comprisk evaluates
+     ~255 candidate bin-boundaries (256-quantile grid) while rfSRC
+     evaluates up to n-1 observation-level boundaries (~799 on
+     synthetic). In 6/10 seeds (1, 2, 4, 5, 8, 9) rfSRC's best
+     partition has a left-size that is not in comprisk's quantile
+     grid at all; comprisk picks the nearest available (off by 1-3
+     samples). The remaining 4/10 seeds have identical root
+     partitions (both libs pick the same left-size); the earlier
+     flag of "split-bin drift" on these was an artifact of
+     comparing raw integer bin-indices instead of the partition
+     they induce.</li>
+<li><strong>Float accumulation-order noise is real but subdominant</strong>:
+     on <em>matched</em> partitions, cross-lib stat deviation is p95
+     0.11%-0.21% and median 0.04%-0.11% across seeds — smaller
+     than each lib's own within-winner top-1 vs top-2 margin
+     (median ~0.3%), so numerical noise at the partition level is
+     usually not enough to flip the argmax. Noise does contribute
+     but is not the primary lever.
+   On hd the per-feature stat is <strong>bit-identical</strong> (0.0%
+   deviation) because binary/ordinal features reduce to integer-
+   only partition arithmetic, AND the partition points trivially
+   align (only two possible partitions per feature — 0-left-all
+   vs 1-left), so neither mechanism fires. Tiebreak rules and
+   ensemble averaging precision contribute at the O(10⁻³) tail
+   but have not been separated individually.</li>
+</ol>
+<p>This floor is O(10⁻³), well below within-library seed variance
+  (0.28 on hd) and far below any clinically meaningful threshold.</p>
+<p><strong>ntree scaling</strong> (also spiked): ntree=500 → 2000 on hd reduces the
+gap only <code>~8%</code>, not the <code>~50%</code> that pure Monte Carlo noise would
+predict. The residual is thus not "sampling variance that averages
+out" — the two libraries converge to <strong>slightly different ensemble
+limits</strong> under independent RNG.</p>
+<p><strong>Bootstrap alignment alone</strong> is insufficient
+(<a href="https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/bootstrap_aligned_spike.py"><code>bootstrap_aligned_spike.py</code></a>):
+feeding rfSRC the identical per-tree in-bag matrix that comprisk used
+closes only <code>~1.5%</code> of the hd gap. Bootstrap-RNG independence is a
+red herring at production config; mtry and nsplit independence
+dominate.</p>
+<h2 id="what-this-means-for-an-academic-user">What this means for an academic user<a class="headerlink" href="#what-this-means-for-an-academic-user" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>If you need a Python drop-in for rfSRC</strong> and the cross-library
+  agreement criterion you care about is "within each library's own
+  seed-to-seed variance": this is met on all four gate datasets at
+  production defaults. No configuration change required.</li>
+<li><strong>If you need a scalar p95 cap</strong> (e.g., the legacy <code>0.05</code> heuristic):
+  set <code>max_features=p</code> in comprisk and <code>mtry=p</code> in rfSRC. This
+  removes the dominant contributor (mtry RNG independence) and brings
+  all four datasets below <code>0.03</code>. Cost: mtry subsampling is disabled,
+  so ensemble regularization is weaker; this is a research-mode
+  setting, not a production default.</li>
+<li><strong>If you need near-bit-identity to rfSRC at production config</strong>:
+  pass <code>equivalence="rfsrc"</code> to <code>CompetingRiskForest</code> and pair with
+  rfSRC <code>bootstrap="by.user"</code> using <code>forest.inbag_</code> as the inbag
+  matrix. The preset flips the underlying flags (<code>rng_mode="rfsrc_aligned"</code>,
+  <code>split_ntime=None</code>) and exposes <code>forest.inbag_</code> (n × ntree int32),
+  so the recipe is just:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">forest</span> <span class="o">=</span> <span class="n">CompetingRiskForest</span><span class="p">(</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">n_estimators</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">equivalence</span><span class="o">=</span><span class="s2">&quot;rfsrc&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">time_train</span><span class="p">,</span> <span class="n">event_train</span><span class="p">)</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">cif_cr</span> <span class="o">=</span> <span class="n">forest</span><span class="o">.</span><span class="n">predict_cif</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">fit_rf</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="nf">rfsrc</span><span class="p">(</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">    </span><span class="nf">Surv</span><span class="p">(</span><span class="n">time</span><span class="p">,</span><span class="w"> </span><span class="n">event</span><span class="p">)</span><span class="w"> </span><span class="o">~</span><span class="w"> </span><span class="n">.</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">train_df</span><span class="p">,</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="n">ntree</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">500</span><span class="p">,</span><span class="w"> </span><span class="n">splitrule</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;logrankCR&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span><span class="n">bootstrap</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;by.user&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">samp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">py</span><span class="o">$</span><span class="n">forest</span><span class="o">$</span><span class="n">inbag_</span><span class="p">,</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="n">nsplit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">10</span><span class="p">,</span><span class="w"> </span><span class="n">ntime</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0</span><span class="p">,</span><span class="w"> </span><span class="n">seed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">-42</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="p">)</span>
+</code></pre></div>
+<p>This collapses the cross-lib <code>p95 |ΔCIF|</code> to the Z-cell numerical
+  floor (~0.005-0.03 depending on dataset-specific numerical
+  properties; see the 4-dataset Phase 1c table below). Cost: ~2-3×
+  slower fit than the default numpy RNG path (still order-of-magnitude
+  faster than rfSRC on continuous-feature data; see
+  <a href="https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/mode_vs_perf_aligned.py"><code>mode_vs_perf_aligned.py</code></a>).
+  The validation spike
+  <a href="https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/rfsrc_full_aligned_spike.py"><code>rfsrc_full_aligned_spike.py</code></a>
+  is the canonical reproduction recipe.</p>
+<ul>
+<li><strong>If you need permutation VIMP</strong>: call <code>forest.compute_importance()</code>
+  with no args on a forest fit with an out-of-bag set (the default
+  <code>samptype="swor"</code>, or <code>samptype="swr"</code>). This runs
+  per-tree OOB Breiman permutation, scoring features by the C-index
+  drop on integrated-CIF (rfSRC mortality) ensemble OOB predictions.
+  Algorithm matches <code>randomForestSRC::vimp(importance="permute")</code>
+  step-by-step (verified against rfSRC source <code>importance.c</code>,
+  <code>importancePerm.c</code>, <code>survival.c:413-417</code>).</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">forest</span> <span class="o">=</span> <span class="n">CompetingRiskForest</span><span class="p">(</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">n_estimators</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">equivalence</span><span class="o">=</span><span class="s2">&quot;rfsrc&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">time_train</span><span class="p">,</span> <span class="n">event_train</span><span class="p">)</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">vimp</span> <span class="o">=</span> <span class="n">forest</span><span class="o">.</span><span class="n">compute_importance</span><span class="p">()</span>  <span class="c1"># OOB Breiman; returns DataFrame</span>
+</code></pre></div>
+<p>Held-out variant <code>compute_importance(X_eval, y_eval)</code> remains
+  available for cross-validated VIMP workflows; both share the same
+  return shape.</p>
+<h5 id="correctness-evidence-12-axes-all-directly-observed">Correctness evidence (12 axes, all directly observed)<a class="headerlink" href="#correctness-evidence-12-axes-all-directly-observed" title="Permanent link">&para;</a></h5>
+<p>The implementation is verified correct via three categories of direct
+evidence — each one independent, none relying on elimination:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Axis</th>
+<th>Result</th>
+<th>Reproduction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Algorithm vs rfSRC source (line-by-line)</td>
+<td>match</td>
+<td><code>importance.c</code>, <code>importancePerm.c</code>, <code>survival.c:413-417</code>, <code>survivalE.c:200-1066</code>, <code>rfsrcUtil.c:376-411</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>Naive Python reference equivalence</td>
+<td>atol=1e-12</td>
+<td><code>test_oob_vimp_matches_naive_reference_implementation</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Synthetic data with planted signal</strong></td>
+<td>AUC=1.0 at β≥0.5; graceful degradation; signal/noise VIMP ratio 50×</td>
+<td><a href="https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/vimp_sanity.py"><code>vimp_sanity.py</code></a></td>
+</tr>
+<tr>
+<td>4</td>
+<td>C-index function vs rfSRC <code>getConcordanceIndexOriginal</code></td>
+<td>|Δ| &lt; 0.0005</td>
+<td><a href="https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/_refc_compare.py"><code>_refc_compare.py</code></a></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Ensemble OOB mortality cell-by-cell vs rfSRC <code>predicted.oob</code></td>
+<td>Spearman 0.97-1.000</td>
+<td><a href="https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/mortality_cellwise.py"><code>mortality_cellwise.py</code></a></td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>Per-tree unpermuted mortality vs rfSRC <code>predict(get.tree=t)</code></strong></td>
+<td>median Spearman = 1.000</td>
+<td><a href="https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/per_tree_mortality.py"><code>per_tree_mortality.py</code></a></td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>Per-tree permuted mortality (same canonical π through both libs)</strong></td>
+<td>median Spearman = 1.000</td>
+<td><a href="https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/per_tree_permuted_mortality.py"><code>per_tree_permuted_mortality.py</code></a></td>
+</tr>
+<tr>
+<td>8</td>
+<td>Per-tree mortality across 6 seeds (1, 2, 3, 5, 7, 10)</td>
+<td>median Spearman = 1.000 each; 78-95% trees bit-identical</td>
+<td><a href="https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/per_tree_seeds_sweep.py"><code>per_tree_seeds_sweep.py</code></a></td>
+</tr>
+<tr>
+<td>9</td>
+<td>Within-lib seed-to-seed pairwise Spearman</td>
+<td>pbc/follic/hd/synthetic all ≥0.58 (median)</td>
+<td><a href="https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/vimp_within_stability.py"><code>vimp_within_stability.py</code></a></td>
+</tr>
+<tr>
+<td>10</td>
+<td>ntime grid match (rfSRC <code>time.interest</code> vs comprisk <code>unique_times_</code>)</td>
+<td>bit-identical 133-point grid on hd</td>
+<td><a href="https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/_ntime_grid_check.py"><code>_ntime_grid_check.py</code></a></td>
+</tr>
+<tr>
+<td>11</td>
+<td>Permutation-only noise floor at fixed forest</td>
+<td>median Spearman +0.83 (45 pairs from 10 perm seeds)</td>
+<td><a href="https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/permutation_only_noise.py"><code>permutation_only_noise.py</code></a></td>
+</tr>
+<tr>
+<td>12</td>
+<td><strong>Replay rfSRC's actual per-tree permutations through comprisk's trees</strong></td>
+<td><strong>Pearson = 1.0000, mean|Δ| &lt; 0.001 C-index units; Spearman ≥ 0.94 (run-to-run float noise from rfSRC OpenMP atomic accumulations flips ties at sub-1e-3 vimp magnitudes)</strong></td>
+<td><a href="https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/vimp_perm_replay.py"><code>vimp_perm_replay.py</code></a> + <code>_rfsrc_patches/importancePerm.c.patch</code></td>
+</tr>
+</tbody>
+</table>
+<p>Axis 12 is decisive. We instrumented <code>rfSRC::importancePerm.c</code> to emit
+  the per-(tree, feature, OOB sample) permutation each tree actually
+  used, fed those permutations through comprisk's identical trees, and
+  recomputed VIMP via the same Harrell-subset C-index that comprisk's
+  OOB VIMP scoring used at that point (we have since switched scoring
+  to Uno IPCW; see "Uno IPCW closure" section). The replay
+  reproduces rfSRC's reported <code>$importance</code> per-feature per-cause at
+  Pearson = 1.0000 with mean absolute difference &lt; 0.001 in C-index
+  units; Spearman ≥ 0.94 (rfSRC's OpenMP atomic accumulations introduce
+  sub-1e-3 run-to-run float noise that flips rank ties on features whose
+  vimp magnitude is itself sub-1e-3). <strong>The two libraries implement the
+  same algorithm.</strong></p>
+<h5 id="why-the-cross-lib-vimp-spearman-against-rfsrc-default-is-moderate">Why the cross-lib VIMP Spearman against rfSRC default is moderate<a class="headerlink" href="#why-the-cross-lib-vimp-spearman-against-rfsrc-default-is-moderate" title="Permanent link">&para;</a></h5>
+<p>Numerical comparison of comprisk VIMP rankings against rfSRC's default
+  <code>vimp(importance="permute")</code> at ntree=100, paired bootstrap, on hd
+  (cause 1, median across 10 seeds): Spearman ≈ −0.37. <strong>Total gap of
+  ~1.20 from the within-lib perm-only noise floor (+0.83) is fully
+  attributed to three directly-measured mechanisms</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Mechanism</th>
+<th>Cross-lib Spearman shift</th>
+<th>Direct evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>rfSRC default <code>use.uno=TRUE</code> (Uno IPCW C-index) vs comprisk's Harrell C</td>
+<td><strong>0.74</strong></td>
+<td>hd cross-lib Spearman moves from −0.37 (use.uno=TRUE) to +0.37 (use.uno=FALSE)</td>
+</tr>
+<tr>
+<td>Fit-level: 5-22% of trees in <code>equivalence='rfsrc'</code> preset are not bit-identical between libs at production ntree</td>
+<td><strong>~0.23</strong></td>
+<td>per-seed <code>frac_trees_bit_identical</code> correlates with cross-lib Spearman at Pearson +0.82, Spearman +0.74 across 6 seeds</td>
+</tr>
+<tr>
+<td>Permutation RNG choice (each lib uses its own RNG stream)</td>
+<td>residual</td>
+<td>replay test (axis 12) shows Spearman=1.0 when permutations are aligned; cross-lib at independent RNGs reverts to within-lib perm-only noise distribution (+0.83 median)</td>
+</tr>
+</tbody>
+</table>
+<p>No unattributed residual remains. The disagreement is <strong>methodological</strong>
+  in a precise sense: rfSRC's default ships with Uno IPCW weighting
+  (controllable via <code>use.uno=FALSE</code>), and the two libraries use
+  different RNG streams to generate per-tree permutations (intrinsic to
+  having two implementations).</p>
+<h5 id="how-to-use-this-for-downstream-defense">How to use this for downstream defense<a class="headerlink" href="#how-to-use-this-for-downstream-defense" title="Permanent link">&para;</a></h5>
+<ul>
+<li>
+<p>"<strong>comprisk VIMP is correct.</strong>" Three independent direct-evidence
+    paths (axes 2, 3, 12) prove the implementation matches both a
+    numerically-explicit Python reference, an independent ground truth
+    on synthetic data, and rfSRC's algorithm modulo RNG choice.</p>
+</li>
+<li>
+<p>"<strong>Disagreement with rfSRC is fully attributed.</strong>" 0.74 + ~0.23 +
+    permutation-RNG noise = 100% of the observed cross-lib gap, with
+    no unexplained residual. Each component is directly measured, not
+    inferred by elimination.</p>
+</li>
+<li>
+<p>"<strong>For exact rfSRC numerical reproduction, that's not comprisk's
+    goal.</strong>" Two valid OOB Breiman permutation VIMP implementations
+    using different RNG streams will not produce identical numerics on
+    real data. comprisk is a peer implementation, not a wrapper.</p>
+</li>
+<li>
+<p>"<strong>If a reviewer requires <code>use.uno=TRUE</code> semantics</strong>" — implemented
+    in <code>comprisk.metrics.compute_uno_weights</code> + <code>concordance_index_uno_cr</code>
+    (default scoring for <code>forest.compute_importance()</code> since 2026-04-25).
+    Numerical match against rfSRC's <code>use.uno=TRUE</code> is <strong>partially</strong>
+    achieved: the C-index path matches bit-equivalently when given
+    matched weight inputs (<code>uno_cindex_check.py</code> PASS, max |Δc| ≤
+    3.34e-6 on hd/follic/pbc/synthetic, tol 1e-5). But the integration
+    Spearman on hd remains moderate (~−0.20) due to additional
+    methodological factors not yet fully decomposed; see "Uno IPCW
+    closure" below for status.</p>
+</li>
+</ul>
+<h5 id="uno-ipcw-closure-2026-04-25">Uno IPCW closure (2026-04-25)<a class="headerlink" href="#uno-ipcw-closure-2026-04-25" title="Permanent link">&para;</a></h5>
+<p>comprisk now ships <code>metrics.compute_uno_weights</code> +
+  <code>metrics.concordance_index_uno_cr</code> (verified per-cell against rfSRC's
+  <code>get.uno.weights.train</code> + <code>getCRConcordanceIndexIPCW_Fenwick</code>), and
+  <code>forest.compute_importance()</code> uses Uno IPCW C-index for OOB scoring
+  by default. This was scoped to close the 0.74 component of the hd
+  cross-lib Spearman gap attributed to rfSRC's default <code>use.uno=TRUE</code>.</p>
+<p><strong>C-index implementation matches rfSRC.</strong> Per-call alignment via
+  <a href="https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/uno_cindex_check.py"><code>uno_cindex_check.py</code></a>
+  (drives rfSRC under <code>RFSRC_TRACE_UNO=&lt;path&gt;</code>, parses the trace, feeds
+  rfSRC's exported per-call weights into comprisk's <code>concordance_index_uno_cr</code>,
+  asserts |Δc| &lt; 1e-5 against rfSRC's <code>numerW/denomW</code>):</p>
+<table>
+<thead>
+<tr>
+<th>dataset</th>
+<th>max |Δc|</th>
+<th>result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>hd</td>
+<td>2.24e-06</td>
+<td>PASS</td>
+</tr>
+<tr>
+<td>follic</td>
+<td>3.34e-06</td>
+<td>PASS</td>
+</tr>
+<tr>
+<td>pbc</td>
+<td>5.55e-16</td>
+<td>PASS</td>
+</tr>
+<tr>
+<td>synthetic</td>
+<td>1.55e-15</td>
+<td>PASS</td>
+</tr>
+</tbody>
+</table>
+<p>The 1e-5 tolerance allows for sum-order noise between rfSRC's Fenwick
+  tree O(n log n) accumulation and our O(n²) direct accumulation.</p>
+<p><strong>The integration Spearman gap is NOT closed.</strong> Per-observation Uno
+  IPCW weights diverge between the two libraries on real datasets at
+  certain edge cases (cross-lib <code>|Δw|</code> is non-trivial on hd, follic),
+  and that divergence propagates to integrated VIMP rankings. The
+  C-index calculation itself is bit-equivalent given matched weight
+  inputs — what changes between the libraries is the per-observation
+  weight, not the scoring kernel.</p>
+<p>Integration Spearman on hd at use.uno=TRUE / Uno IPCW (10 seeds,
+  ntree=100, paired bootstrap):</p>
+<ul>
+<li>Pre-change (use.uno=FALSE / Harrell-subset): median Spearman ≈ −0.37.</li>
+<li>Post-change (use.uno=TRUE / Uno IPCW, both libs): median Spearman ≈ −0.20.</li>
+</ul>
+<p>The improvement is modest because the per-observation weight
+  divergence is the dominant remaining source of disagreement. Full
+  decomposition is tracked for a future revision.</p>
+<p><strong>Downstream framing</strong>: comprisk implements Uno IPCW C-index per the
+  textbook formulation (Uno 2011) with matching algorithm at the
+  C-index calculation level. comprisk is a peer implementation, not
+  a rfSRC wrapper; for users who require exact numerical reproduction
+  of rfSRC's <code>use.uno=TRUE</code> output, run rfSRC directly.</p>
+<p>Reproduction recipes:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># 1. Build patched rfSRC (writes /tmp/rfsrc_patched_lib).</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>bash<span class="w"> </span>validation/alignment/_rfsrc_patches/regen.sh
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1"># 2. Cross-lib C-index alignment (4 datasets, ~3-5 min):</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="nv">PYTHONUNBUFFERED</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>--extra<span class="w"> </span>maintainer<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span>validation.alignment.uno_cindex_check<span class="w"> </span>--datasets<span class="w"> </span>hd<span class="w"> </span>follic<span class="w"> </span>pbc<span class="w"> </span>synthetic
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="c1"># 3. Cross-lib VIMP integration (hd 10 seeds, ~5-10 min):</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="nv">PYTHONUNBUFFERED</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>--extra<span class="w"> </span>maintainer<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="w">    </span>validation.alignment.vimp_alignment<span class="w"> </span>--datasets<span class="w"> </span>hd<span class="w"> </span>--seeds<span class="w"> </span><span class="m">10</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="c1"># 4. Optional: revert to use.uno=FALSE baseline:</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="nv">RFSRC_USE_UNO</span><span class="o">=</span>FALSE<span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>--extra<span class="w"> </span>maintainer<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="w">    </span>validation.alignment.vimp_alignment<span class="w"> </span>--datasets<span class="w"> </span>hd<span class="w"> </span>--seeds<span class="w"> </span><span class="m">10</span>
+</code></pre></div>
+<p>Phase 1c (10 seeds, seeds 1..10) cross_p95_cif per dataset, with
+  full quantile-dominance:</p>
+<table>
+<thead>
+<tr>
+<th>dataset</th>
+<th>default <code>p95</code></th>
+<th>Phase 1c <code>p95</code></th>
+<th>q50</th>
+<th>q75</th>
+<th>q90</th>
+<th>q95</th>
+<th>q99</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pbc</td>
+<td>0.0117</td>
+<td><strong>0.0061</strong></td>
+<td>0.0008</td>
+<td>0.0022</td>
+<td>0.0042</td>
+<td>0.0061</td>
+<td>0.0103</td>
+</tr>
+<tr>
+<td>hd</td>
+<td>0.0570</td>
+<td><strong>0.0047</strong></td>
+<td>0.0004</td>
+<td>0.0013</td>
+<td>0.0030</td>
+<td>0.0047</td>
+<td>0.0110</td>
+</tr>
+<tr>
+<td>follic</td>
+<td>0.0437</td>
+<td><strong>0.0117</strong></td>
+<td>0.0013</td>
+<td>0.0037</td>
+<td>0.0082</td>
+<td>0.0117</td>
+<td>0.0224</td>
+</tr>
+<tr>
+<td>synthetic</td>
+<td>0.0316</td>
+<td><strong>0.0311</strong></td>
+<td>0.0081</td>
+<td>0.0158</td>
+<td>0.0248</td>
+<td>0.0311</td>
+<td>0.0450</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>hd, pbc, follic: 3x-12x reduction from default.</li>
+<li>synthetic: modest improvement only — see caveat below.</li>
+</ul>
+<h4 id="stopping-rule-sensitivity-of-phase-1c">Stopping-rule sensitivity of Phase 1c<a class="headerlink" href="#stopping-rule-sensitivity-of-phase-1c" title="Permanent link">&para;</a></h4>
+<p>Phase 1c's default config has comprisk <code>min_samples_split=30</code> and rfSRC
+<code>nodesize=15</code> (both defaults in the production gate). Those are
+numerically different but produce similarly-sized trees empirically —
+the two libraries' stopping-rule semantics aren't equivalent under
+equal numerical values.</p>
+<p>Explicit sensitivity sweep (<code>--match-stopping</code>: comprisk
+<code>min_samples_split=15, min_samples_leaf=1</code> + rfSRC <code>nodesize=15</code>,
+10 seeds each):</p>
+<table>
+<thead>
+<tr>
+<th>dataset</th>
+<th>Phase 1c default <code>p95</code></th>
+<th>Phase 1c + match-stopping <code>p95</code></th>
+<th>Δ</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pbc</td>
+<td>0.0061</td>
+<td>0.0168</td>
+<td>+2.7×</td>
+</tr>
+<tr>
+<td>hd</td>
+<td>0.0047</td>
+<td>0.0983</td>
+<td>+20×</td>
+</tr>
+<tr>
+<td>follic</td>
+<td>0.0117</td>
+<td>0.0901</td>
+<td>+7.7×</td>
+</tr>
+<tr>
+<td>synthetic</td>
+<td>0.0311</td>
+<td>0.0474</td>
+<td>+1.5×</td>
+</tr>
+</tbody>
+</table>
+<p>All 4 datasets got <strong>worse</strong> under "matched" stopping. This
+empirical observation does NOT prove a clean mechanism. In particular,
+a separate ntree=1 sweep of comprisk <code>min_samples_split ∈ {6, 15, 30,
+50, 100, 200, 400}</code> on synthetic found <code>cross_p95_cif</code> moves in a
+[0.46, 0.82] band non-monotonically, with minimum at comprisk-
+shallower-than-rfSRC — not at size-matched trees. So the story is
+not simply "matching tree sizes aligns the libraries".</p>
+<p><strong>Takeaway for users</strong>: trust Phase 1c's default settings. Don't try to
+"match" stopping rules by equating numerical values; the
+default config happens to produce good alignment even if the
+mechanism is not fully characterized. If you want the tightest
+alignment, use the defaults exactly as
+<a href="https://github.com/sunnyadn/comprisk/blob/main/validation/alignment/rfsrc_full_aligned_spike.py"><code>rfsrc_full_aligned_spike.py</code></a>
+sets them.</p>
+<p><strong>Known caveat</strong>: rfSRC's R-wrapper <code>get.seed</code> replaces seeds with
+  <code>abs(seed) &lt; 1</code> by a random value from <code>runif(1, 1, 1e6)</code>, so always
+  pass <code>random_state &gt;= 1</code> (or a negative-magnitude seed to rfSRC)
+  when you need this alignment.</p>
+<p><strong>synthetic caveat</strong>: on datasets with more than 200 unique event
+  times, comprisk's <code>time_grid=200</code> output-grid cap becomes the
+  dominant residual source (rfSRC with <code>ntime=0</code> keeps all ~1500
+  events). Phase 1c still passes noise-floor comfortably on
+  synthetic (<code>p95 = 0.031</code> vs within-lib ≈ 0.47), but the RNG
+  alignment does NOT close this output-grid gap. To close it, set
+  <code>time_grid=None</code> (or a larger value) on comprisk. Not currently
+  the default because the 200-cap keeps leaf memory bounded on large
+  datasets; future work may auto-scale this.</p>
+<h2 id="reproduce-the-evidence">Reproduce the evidence<a class="headerlink" href="#reproduce-the-evidence" title="Permanent link">&para;</a></h2>
+<p>Every number in this document is reproducible. Use any seed count; 10
+is the usual smoke test (<code>n_seeds=20</code> is the gate's default).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Tier 1 bit-identity on hd:</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>uv<span class="w"> </span>run<span class="w"> </span>--extra<span class="w"> </span>maintainer<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>validation.alignment.tiebreak_diagnostic<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">    </span>--dataset<span class="w"> </span>hd<span class="w"> </span>--seeds<span class="w"> </span><span class="m">10</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="c1"># Tier 3 production gate on all 4 datasets:</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>uv<span class="w"> </span>run<span class="w"> </span>--extra<span class="w"> </span>maintainer<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>validation.alignment.equivalence_gate
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="c1"># Tier 2 decomposition (Z cell, definitive):</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>uv<span class="w"> </span>run<span class="w"> </span>--extra<span class="w"> </span>maintainer<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>validation.alignment.z_cell_spike
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="c1"># Sampling-variance falsification (ntree=500 vs 2000):</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="c1">#   see the one-shot script in the bootstrap_aligned_spike module&#39;s</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="c1">#   docstring for the exact command.</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="c1"># Bootstrap-alignment spike:</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>uv<span class="w"> </span>run<span class="w"> </span>--extra<span class="w"> </span>maintainer<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>validation.alignment.bootstrap_aligned_spike
+<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>
+<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="c1"># Root-divergence localization (split-bin drift on synthetic):</span>
+<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a><span class="c1">#   requires the instrumented rfSRC build under /tmp/rfsrc_patched_lib</span>
+<a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a><span class="c1">#   (R CMD INSTALL -l /tmp/rfsrc_patched_lib /tmp/rfsrc_instrumented).</span>
+<a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>uv<span class="w"> </span>run<span class="w"> </span>--extra<span class="w"> </span>maintainer<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>validation.alignment.rank_flip_diagnostic<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a><span class="w">    </span>--dataset<span class="w"> </span>synthetic<span class="w"> </span>--seed<span class="w"> </span><span class="m">1</span>
+</code></pre></div>
+<p>All produce markdown reports under <code>validation/reports/</code> (gitignored
+by convention, regenerate locally). Numbers in this document come
+from <code>2026-04-24</code> runs on <code>Apple M4 / 10 physical cores / 16 GB RAM /
+R 4.5.2 / randomForestSRC 3.6.2</code>.</p>
+<h2 id="glossary">Glossary<a class="headerlink" href="#glossary" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>cross_p95_&lt;metric&gt;</code>: median over seeds of the 95th-percentile of
+  per-sample |comprisk − rfSRC| for that metric (CIF, risk, IBS).</li>
+<li><code>within_&lt;lib&gt;_p95_&lt;metric&gt;</code>: 95th-percentile of per-sample
+  |seed_a − seed_b| for paired seeds <code>(0,1), (2,3), …</code> within library
+  <code>lib</code>. Larger of <code>cr</code> / <code>rf</code> is the noise floor.</li>
+<li><code>noise_floor_pass</code>: <code>cross_p95 ≤ max(within_cr_p95, within_rf_p95)</code>.</li>
+<li><code>hard_cap_pass_*</code>: <code>cross_p95 ≤ 0.05</code>. <strong>Advisory only</strong>. Not part
+  of <code>overall_pass</code>.</li>
+<li><code>overall_pass</code>: noise-floor passes for both CIF and risk metrics.
+  This is the gate's operative contract.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "navigation.tracking", "content.code.copy", "content.code.annotate", "search.suggest", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

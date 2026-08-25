@@ -1,0 +1,1372 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Python toolkit for competing risks — a scalable, scikit-learn-compatible random survival forest plus Fine-Gray, Aalen-Johansen, Gray's test, and cause-specific Cox.">
+      
+      
+      
+        <link rel="canonical" href="https://sunnyadn.github.io/comprisk/quickstart/">
+      
+      
+        <link rel="prev" href="..">
+      
+      
+        <link rel="next" href="../reference/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Quickstart - comprisk</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#quickstart" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="comprisk" class="md-header__button md-logo" aria-label="comprisk" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            comprisk
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Quickstart
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/sunnyadn/comprisk" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    sunnyadn/comprisk
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="comprisk" class="md-nav__button md-logo" aria-label="comprisk" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    comprisk
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/sunnyadn/comprisk" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    sunnyadn/comprisk
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-data-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Data format
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-fitting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Fitting
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-prediction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Prediction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-scoring" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Scoring
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Scoring">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cross-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cross-validation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#time-dependent-auc-brier-calibration-score_cr-calibration_cr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Time-dependent AUC / Brier / calibration (score_cr, calibration_cr)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-permutation-variable-importance-vimp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Permutation variable importance (VIMP)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Permutation variable importance (VIMP)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#oob-breiman-default-no-eval-set-needed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OOB Breiman (default — no eval set needed)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#held-out" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Held-out
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-variable-selection-minimal-depth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Variable selection (minimal depth)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-treeshap-explanations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. TreeSHAP explanations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-performance-levers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Performance levers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-gpu-preview-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. GPU preview (optional)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-migrating-from-rfsrc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Migrating from rfSRC
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#whats-not-here-yet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What's not here yet
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../persistence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Saving & loading
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../equivalence-vs-rfsrc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Equivalence vs rfSRC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../REFERENCES/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    References
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-data-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Data format
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-fitting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Fitting
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-prediction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Prediction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-scoring" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Scoring
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Scoring">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cross-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cross-validation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#time-dependent-auc-brier-calibration-score_cr-calibration_cr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Time-dependent AUC / Brier / calibration (score_cr, calibration_cr)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-permutation-variable-importance-vimp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Permutation variable importance (VIMP)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Permutation variable importance (VIMP)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#oob-breiman-default-no-eval-set-needed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OOB Breiman (default — no eval set needed)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#held-out" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Held-out
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-variable-selection-minimal-depth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Variable selection (minimal depth)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-treeshap-explanations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. TreeSHAP explanations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-performance-levers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Performance levers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-gpu-preview-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. GPU preview (optional)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-migrating-from-rfsrc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Migrating from rfSRC
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#whats-not-here-yet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What's not here yet
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="quickstart">Quickstart<a class="headerlink" href="#quickstart" title="Permanent link">&para;</a></h1>
+<p>A working tour of comprisk: data format, fitting, prediction shapes, scoring,
+permutation importance, performance levers, and rfSRC migration.</p>
+<p>Every code block is runnable end-to-end.</p>
+<h2 id="1-data-format">1. Data format<a class="headerlink" href="#1-data-format" title="Permanent link">&para;</a></h2>
+<p>comprisk expects three arrays and treats them positionally:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># n = number of subjects, p = number of features.</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">500</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>   <span class="c1"># (n, p) float</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">time</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">exponential</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">500</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.1</span>  <span class="c1"># (n,) float, &gt; 0</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">event</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">choice</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">size</span><span class="o">=</span><span class="mi">500</span><span class="p">)</span>  <span class="c1"># (n,) int</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="c1"># Convention:</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="c1">#   event[i] == 0    → subject i was censored at time[i]</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1">#   event[i] == k≥1  → subject i had cause-k event at time[i]</span>
+</code></pre></div>
+<p>Causes are indexed from 1 — <code>event</code> codes 1, 2, … K. comprisk infers <code>K</code>
+from the training data (<code>forest.n_causes_</code> after fit; supports up to 255
+causes).</p>
+<p>Pandas / polars DataFrames are accepted for <code>X</code>; <code>time</code> and <code>event</code> are
+fed as 1-D arrays. No structured-array <code>y</code> needed at fit time (unlike
+scikit-survival).</p>
+<h2 id="2-fitting">2. Fitting<a class="headerlink" href="#2-fitting" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">comprisk</span><span class="w"> </span><span class="kn">import</span> <span class="n">CompetingRiskForest</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">forest</span> <span class="o">=</span> <span class="n">CompetingRiskForest</span><span class="p">(</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">n_estimators</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">max_features</span><span class="o">=</span><span class="s2">&quot;sqrt&quot;</span><span class="p">,</span>   <span class="c1"># mtry; can also be int / float / &quot;log2&quot; / None</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">max_depth</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">min_samples_leaf</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="n">splitrule</span><span class="o">=</span><span class="s2">&quot;logrankCR&quot;</span><span class="p">,</span> <span class="c1"># composite CR log-rank (default)</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>             <span class="c1"># all CPUs; bit-equivalent across n_jobs values</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">event</span><span class="p">)</span>
+</code></pre></div>
+<p>Defaults match common practice: 100 trees, sqrt-mtry, depth 15, leaves of
+size 3, joblib over all cores. Output is bit-identical for a fixed
+<code>random_state</code> regardless of <code>n_jobs</code>.</p>
+<p>The two splitrules:</p>
+<table>
+<thead>
+<tr>
+<th><code>splitrule</code></th>
+<th>What it optimises</th>
+<th>When to use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"logrankCR"</code> (default)</td>
+<td>Composite CR log-rank pooled over all causes (Lau-inclusive at-risk)</td>
+<td>When you want one forest that respects every cause</td>
+</tr>
+<tr>
+<td><code>"logrank"</code></td>
+<td>Cause-specific log-rank for one cause; competing events remove the subject from the risk set</td>
+<td>When one cause is your primary outcome — fits faster than <code>logrankCR</code></td>
+</tr>
+</tbody>
+</table>
+<p>For <code>splitrule="logrank"</code>, set <code>cause=k</code> to choose the cause to optimise,
+or supply <code>cause_weights=[w_1, …, w_K]</code> (reference mode only) for a
+weighted combination.</p>
+<p>After <code>.fit()</code>:</p>
+<table>
+<thead>
+<tr>
+<th>attribute</th>
+<th>meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>forest.n_causes_</code></td>
+<td>number of causes inferred from training event labels</td>
+</tr>
+<tr>
+<td><code>forest.n_features_in_</code></td>
+<td>number of features at fit time</td>
+</tr>
+<tr>
+<td><code>forest.unique_times_</code></td>
+<td>union of training event times (used as the prediction time grid)</td>
+</tr>
+<tr>
+<td><code>forest.time_grid_</code></td>
+<td>the histogram-mode internal grid (≤ <code>time_grid</code> points; <code>unique_times_</code> is identical to it in default mode)</td>
+</tr>
+<tr>
+<td><code>forest.trees_</code></td>
+<td>list of fitted trees; each is a flat-tree node array (default mode) or a tree-node object graph (reference mode)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="3-prediction">3. Prediction<a class="headerlink" href="#3-prediction" title="Permanent link">&para;</a></h2>
+<p>Three call shapes covering the standard CR-survival outputs:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># (a) Cumulative incidence (Aalen-Johansen). Shape: (n_samples, n_causes, n_times).</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">cif_full</span> <span class="o">=</span> <span class="n">forest</span><span class="o">.</span><span class="n">predict_cif</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># (b) CIF interpolated to user-supplied times (right-continuous step function).</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">cif_at</span> <span class="o">=</span> <span class="n">forest</span><span class="o">.</span><span class="n">predict_cif</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">times</span><span class="o">=</span><span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">])</span>  <span class="c1"># (n, K, 3)</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1"># (c) Cumulative hazard (Nelson-Aalen). Same shape semantics.</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">chf_full</span> <span class="o">=</span> <span class="n">forest</span><span class="o">.</span><span class="n">predict_chf</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="n">chf_at</span>   <span class="o">=</span> <span class="n">forest</span><span class="o">.</span><span class="n">predict_chf</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">times</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">])</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="c1"># (d) Per-subject risk scalar — convenient for Wolbers C-index pairs.</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="n">risk_cause1</span> <span class="o">=</span> <span class="n">forest</span><span class="o">.</span><span class="n">predict_risk</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">cause</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>            <span class="c1"># default: integrated CHF over time grid</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="n">risk_cif_last</span> <span class="o">=</span> <span class="n">forest</span><span class="o">.</span><span class="n">predict_risk</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">cause</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;cif_last&quot;</span><span class="p">)</span>  <span class="c1"># CIF at t_max</span>
+</code></pre></div>
+<p><code>kind</code> for <code>predict_risk</code>:</p>
+<ul>
+<li><code>"integrated_chf"</code> (default) — the rfSRC <code>predict$predicted[, cause]</code>
+  convention. Captures curve shape + saturation behaviour.</li>
+<li><code>"cif_last"</code> — single-time-point summary (<code>CIF[k, t_max]</code>). Simpler but
+  loses signal when CIF saturates near 1.</li>
+</ul>
+<p>If you need raw per-tree CIFs, walk <code>forest.trees_</code> directly — each tree's
+predict function lives in <code>comprisk._tree.predict_tree</code> (reference mode) or
+<code>comprisk._hist_tree.predict_tree_hist</code> (default mode).</p>
+<h2 id="4-scoring">4. Scoring<a class="headerlink" href="#4-scoring" title="Permanent link">&para;</a></h2>
+<p><code>forest.score(X, time, event, cause=1)</code> runs Wolbers's cause-specific C-index
+on the chosen risk scalar:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">c_cause1</span> <span class="o">=</span> <span class="n">forest</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">event</span><span class="p">,</span> <span class="n">cause</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">c_cause2</span> <span class="o">=</span> <span class="n">forest</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">event</span><span class="p">,</span> <span class="n">cause</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</code></pre></div>
+<p>For Uno IPCW C-index (recommended in heavily-censored data), use the
+top-level metric on a precomputed risk vector:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">comprisk.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_uno_weights</span><span class="p">,</span> <span class="n">concordance_index_uno_cr</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">w</span> <span class="o">=</span> <span class="n">compute_uno_weights</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">event</span><span class="p">)</span>                 <span class="c1"># IPCW weights, shape (n,)</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">risk</span> <span class="o">=</span> <span class="n">forest</span><span class="o">.</span><span class="n">predict_risk</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">cause</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">c_uno</span> <span class="o">=</span> <span class="n">concordance_index_uno_cr</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">risk</span><span class="p">,</span> <span class="n">cause</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">w</span><span class="p">)</span>
+</code></pre></div>
+<p><code>compute_uno_weights</code> defaults to ESS-truncation gating
+(<code>gmin="auto"</code>, <code>ess_frac=0.20</code>), per Cole &amp; Hernán (2008).</p>
+<p>For a <strong>confidence interval</strong> on the Uno C-index, use the closed-form
+influence-function estimator instead of bootstrapping — it is deterministic
+and orders of magnitude faster:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">comprisk</span><span class="w"> </span><span class="kn">import</span> <span class="n">concordance_index_ci</span><span class="p">,</span> <span class="n">concordance_index_delta_ci</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">ci</span> <span class="o">=</span> <span class="n">concordance_index_ci</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">risk</span><span class="p">,</span> <span class="n">cause</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">ci</span><span class="o">.</span><span class="n">estimate</span><span class="p">,</span> <span class="n">ci</span><span class="o">.</span><span class="n">ci_low</span><span class="p">,</span> <span class="n">ci</span><span class="o">.</span><span class="n">ci_high</span><span class="p">)</span>            <span class="c1"># point + 95% CI, no bootstrap</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="c1"># compare two models on the same subjects (paired delta C, two-sided p-value)</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="n">delta</span> <span class="o">=</span> <span class="n">concordance_index_delta_ci</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">risk_a</span><span class="p">,</span> <span class="n">risk_b</span><span class="p">,</span> <span class="n">cause</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="nb">print</span><span class="p">(</span><span class="n">delta</span><span class="o">.</span><span class="n">estimate</span><span class="p">,</span> <span class="n">delta</span><span class="o">.</span><span class="n">ci_low</span><span class="p">,</span> <span class="n">delta</span><span class="o">.</span><span class="n">ci_high</span><span class="p">,</span> <span class="n">delta</span><span class="o">.</span><span class="n">pvalue</span><span class="p">)</span>
+</code></pre></div>
+<p>The variance includes the censoring-<code>G</code> estimation error; tail stabilisation
+(the default <code>gmin="auto"</code>, or an explicit <code>tau</code>) keeps it valid.</p>
+<h3 id="cross-validation">Cross-validation<a class="headerlink" href="#cross-validation" title="Permanent link">&para;</a></h3>
+<p>Two equivalent paths.</p>
+<p><strong>Manual loop with the 3-arg form</strong> — straightforward when <code>time</code> /
+<code>event</code> already exist as separate arrays:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">KFold</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">kf</span> <span class="o">=</span> <span class="n">KFold</span><span class="p">(</span><span class="n">n_splits</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">scores</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="k">for</span> <span class="n">train_idx</span><span class="p">,</span> <span class="n">test_idx</span> <span class="ow">in</span> <span class="n">kf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">X</span><span class="p">):</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">f</span> <span class="o">=</span> <span class="n">CompetingRiskForest</span><span class="p">(</span><span class="n">n_estimators</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>        <span class="n">X</span><span class="p">[</span><span class="n">train_idx</span><span class="p">],</span> <span class="n">time</span><span class="p">[</span><span class="n">train_idx</span><span class="p">],</span> <span class="n">event</span><span class="p">[</span><span class="n">train_idx</span><span class="p">]</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="p">)</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="n">scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">test_idx</span><span class="p">],</span> <span class="n">time</span><span class="p">[</span><span class="n">test_idx</span><span class="p">],</span> <span class="n">event</span><span class="p">[</span><span class="n">test_idx</span><span class="p">],</span> <span class="n">cause</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;CV C-index, cause 1: </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">scores</span><span class="p">)</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> ± </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">scores</span><span class="p">)</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p><strong>sklearn drop-in with <code>cross_val_score</code></strong> — works because
+<code>CompetingRiskForest</code> is a real <code>BaseEstimator</code> subclass that accepts
+the scikit-survival-style structured <code>y</code>. No wrapper, no custom scorer:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">KFold</span><span class="p">,</span> <span class="n">cross_val_score</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">comprisk</span><span class="w"> </span><span class="kn">import</span> <span class="n">CompetingRiskForest</span><span class="p">,</span> <span class="n">Surv</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">y</span> <span class="o">=</span> <span class="n">Surv</span><span class="o">.</span><span class="n">from_arrays</span><span class="p">(</span><span class="n">event</span><span class="o">=</span><span class="n">event</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="n">time</span><span class="p">)</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">forest</span> <span class="o">=</span> <span class="n">CompetingRiskForest</span><span class="p">(</span><span class="n">n_estimators</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="n">cv</span> <span class="o">=</span> <span class="n">KFold</span><span class="p">(</span><span class="n">n_splits</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="n">scores</span> <span class="o">=</span> <span class="n">cross_val_score</span><span class="p">(</span><span class="n">forest</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="n">cv</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;5-fold C-index, cause 1: </span><span class="si">{</span><span class="n">scores</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> ± </span><span class="si">{</span><span class="n">scores</span><span class="o">.</span><span class="n">std</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p><code>predict(X)</code> is an alias for <code>predict_risk(X, cause=1)</code>, so the estimator
+also slots into <code>Pipeline</code> / <code>cross_val_predict</code>. For cause-<code>k</code> risk or
+CIF / CHF curves use the explicit methods.</p>
+<h3 id="time-dependent-auc-brier-calibration-score_cr-calibration_cr">Time-dependent AUC / Brier / calibration (<code>score_cr</code>, <code>calibration_cr</code>)<a class="headerlink" href="#time-dependent-auc-brier-calibration-score_cr-calibration_cr" title="Permanent link">&para;</a></h3>
+<p><code>score_cr</code> is the CR-mode analogue of R <code>riskRegression::Score()</code>: pass a
+dict of named candidate models (each a CIF matrix of shape
+<code>(n_test, n_eval_times)</code> at the cause of interest) and get back IPCW
+time-dependent AUC and Brier score under competing risks, plus the
+integrated summaries iAUC and IBS, optionally with bootstrap CIs.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">comprisk</span><span class="w"> </span><span class="kn">import</span> <span class="n">CompetingRiskForest</span><span class="p">,</span> <span class="n">FineGrayRegression</span><span class="p">,</span> <span class="n">score_cr</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">eval_times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">])</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="n">rsf</span> <span class="o">=</span> <span class="n">CompetingRiskForest</span><span class="p">(</span><span class="n">n_estimators</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">Xtr</span><span class="p">,</span> <span class="n">ttr</span><span class="p">,</span> <span class="n">etr</span><span class="p">)</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="n">fg</span>  <span class="o">=</span> <span class="n">FineGrayRegression</span><span class="p">(</span><span class="n">cause</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">Xtr</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="n">ttr</span><span class="p">,</span> <span class="n">event</span><span class="o">=</span><span class="n">etr</span><span class="p">)</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="n">preds</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>    <span class="s2">&quot;RSF&quot;</span><span class="p">:</span>       <span class="n">rsf</span><span class="o">.</span><span class="n">predict_cif</span><span class="p">(</span><span class="n">Xte</span><span class="p">,</span> <span class="n">times</span><span class="o">=</span><span class="n">eval_times</span><span class="p">)[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:],</span>   <span class="c1"># cause 1</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>    <span class="s2">&quot;Fine-Gray&quot;</span><span class="p">:</span> <span class="n">fg</span><span class="o">.</span><span class="n">predict_cumulative_incidence</span><span class="p">(</span><span class="n">Xte</span><span class="p">,</span> <span class="n">times</span><span class="o">=</span><span class="n">eval_times</span><span class="p">),</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="p">}</span>
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="n">res</span> <span class="o">=</span> <span class="n">score_cr</span><span class="p">(</span>
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>    <span class="n">preds</span><span class="p">,</span> <span class="n">test_time</span><span class="o">=</span><span class="n">tte</span><span class="p">,</span> <span class="n">test_event</span><span class="o">=</span><span class="n">ete</span><span class="p">,</span> <span class="n">eval_times</span><span class="o">=</span><span class="n">eval_times</span><span class="p">,</span>
+<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>    <span class="n">cause</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;auc&quot;</span><span class="p">,</span> <span class="s2">&quot;brier&quot;</span><span class="p">),</span> <span class="n">n_bootstrap</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+<a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="p">)</span>
+<a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="nb">print</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">auc</span><span class="p">)</span>    <span class="c1"># columns: model, times, AUC, lower, upper</span>
+<a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="nb">print</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">brier</span><span class="p">)</span>  <span class="c1"># columns: model, times, Brier, lower, upper</span>
+<a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a><span class="nb">print</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">iauc</span><span class="p">)</span>   <span class="c1"># columns: model, iAUC, lower, upper</span>
+<a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a><span class="nb">print</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">ibs</span><span class="p">)</span>    <span class="c1"># columns: model, IBS, lower, upper</span>
+</code></pre></div>
+<p><code>calibration_cr</code> returns tidy / long-form calibration-plot data — one row
+per <code>(model, time, quantile-bin)</code> with the predicted bin midpoint, the
+Aalen-Johansen empirical CIF on that bin's subjects, and a per-bin Wilson
+confidence interval (the CR-mode analogue of
+<code>riskRegression::plotCalibration(method="quantile", q=10)</code>). It is also
+reachable from <code>score_cr(..., calibration_at=...)</code> (which populates
+<code>res.calibration</code>).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">comprisk</span><span class="w"> </span><span class="kn">import</span> <span class="n">calibration_cr</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="n">calib</span> <span class="o">=</span> <span class="n">calibration_cr</span><span class="p">(</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="n">preds</span><span class="p">,</span> <span class="n">test_time</span><span class="o">=</span><span class="n">tte</span><span class="p">,</span> <span class="n">test_event</span><span class="o">=</span><span class="n">ete</span><span class="p">,</span> <span class="n">eval_times</span><span class="o">=</span><span class="n">eval_times</span><span class="p">,</span> <span class="n">cause</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_bins</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="p">)</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="c1"># columns: model, times, predicted_decile, observed_freq, lower_ci, upper_ci, bin_n</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="c1"># feed straight into a facet_wrap-style plot (matplotlib / seaborn / plotnine)</span>
+</code></pre></div>
+<h2 id="5-permutation-variable-importance-vimp">5. Permutation variable importance (VIMP)<a class="headerlink" href="#5-permutation-variable-importance-vimp" title="Permanent link">&para;</a></h2>
+<p>Two flavours, both returning a <code>pandas.DataFrame</code> with columns
+<code>feature</code>, <code>cause_{k}_vimp</code> per cause, and <code>composite_vimp</code>.</p>
+<h3 id="oob-breiman-default-no-eval-set-needed">OOB Breiman (default — no eval set needed)<a class="headerlink" href="#oob-breiman-default-no-eval-set-needed" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># Default samptype=&quot;swor&quot;, sampsize=0.632n leaves ~37% of rows out-of-bag</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="c1"># per tree, which OOB importance needs. (samptype=&quot;swr&quot; also works.)</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">forest</span> <span class="o">=</span> <span class="n">CompetingRiskForest</span><span class="p">(</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">n_estimators</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">event</span><span class="p">)</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="n">vimp_oob</span> <span class="o">=</span> <span class="n">forest</span><span class="o">.</span><span class="n">compute_importance</span><span class="p">(</span><span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="nb">print</span><span class="p">(</span><span class="n">vimp_oob</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">&quot;composite_vimp&quot;</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
+</code></pre></div>
+<p>OOB scoring uses the Uno IPCW C-index over the cached training data, with
+each tree's permutation seeded reproducibly so results are bit-equivalent
+across <code>n_jobs</code>.</p>
+<h3 id="held-out">Held-out<a class="headerlink" href="#held-out" title="Permanent link">&para;</a></h3>
+<p>When you want a clean train / eval split, supply <code>(X_eval, y_eval)</code>. <code>y_eval</code>
+must be a structured array with <code>time</code> and <code>event</code> fields (matches sklearn's
+permutation_importance contract):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">X_train</span><span class="p">,</span> <span class="n">X_eval</span> <span class="o">=</span> <span class="n">X</span><span class="p">[:</span><span class="mi">400</span><span class="p">],</span> <span class="n">X</span><span class="p">[</span><span class="mi">400</span><span class="p">:]</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">t_train</span><span class="p">,</span>  <span class="n">t_eval</span> <span class="o">=</span> <span class="n">time</span><span class="p">[:</span><span class="mi">400</span><span class="p">],</span> <span class="n">time</span><span class="p">[</span><span class="mi">400</span><span class="p">:]</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">e_train</span><span class="p">,</span>  <span class="n">e_eval</span> <span class="o">=</span> <span class="n">event</span><span class="p">[:</span><span class="mi">400</span><span class="p">],</span> <span class="n">event</span><span class="p">[</span><span class="mi">400</span><span class="p">:]</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="n">y_eval</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">t_eval</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="p">[(</span><span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="s2">&quot;f8&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;event&quot;</span><span class="p">,</span> <span class="s2">&quot;i8&quot;</span><span class="p">)])</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="n">y_eval</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">],</span> <span class="n">y_eval</span><span class="p">[</span><span class="s2">&quot;event&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">t_eval</span><span class="p">,</span> <span class="n">e_eval</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="n">forest</span> <span class="o">=</span> <span class="n">CompetingRiskForest</span><span class="p">(</span><span class="n">n_estimators</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">t_train</span><span class="p">,</span> <span class="n">e_train</span><span class="p">)</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="n">vimp_held</span> <span class="o">=</span> <span class="n">forest</span><span class="o">.</span><span class="n">compute_importance</span><span class="p">(</span><span class="n">X_eval</span><span class="p">,</span> <span class="n">y_eval</span><span class="p">,</span> <span class="n">n_repeats</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="6-variable-selection-minimal-depth">6. Variable selection (minimal depth)<a class="headerlink" href="#6-variable-selection-minimal-depth" title="Permanent link">&para;</a></h2>
+<p>Rank features by Ishwaran's minimal-depth criterion and apply the forest-
+averaged null-distribution threshold from Ishwaran et al. (2010, JASA,
+Theorem 1 + Section 3):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">forest</span> <span class="o">=</span> <span class="n">CompetingRiskForest</span><span class="p">(</span><span class="n">n_estimators</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">event</span><span class="p">)</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="n">vs</span> <span class="o">=</span> <span class="n">forest</span><span class="o">.</span><span class="n">minimal_depth</span><span class="p">()</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="n">selected</span> <span class="o">=</span> <span class="n">vs</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">vs</span><span class="p">[</span><span class="s2">&quot;selected&quot;</span><span class="p">],</span> <span class="s2">&quot;feature&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+</code></pre></div>
+<p>Variables with mean minimal depth below the threshold are flagged as
+informative. Pass <code>return_extra=True</code> to additionally inspect quartiles
+and per-feature usage rates across trees.</p>
+<p>Note on rfSRC compatibility: comprisk's <strong>default config does not
+numerically match</strong> <code>randomForestSRC</code> here, and that's by design — comprisk
+ships its own sensible defaults and treats full rfSRC parity as the opt-in
+<code>equivalence='rfsrc'</code> path. Two distinct gaps: (1) rfSRC's <em>default</em>
+threshold is tree-averaged (<code>max.subtree(conservative=FALSE)</code>) while this uses
+forest-averaging (<code>conservative=TRUE</code>) — the authors designate neither as
+"recommended", and the two forest-averaged <em>formulas</em> are numerically
+identical; (2) under default
+config the libraries grow different-sized trees, and the threshold is
+geometry-derived, so the <em>scalar</em> shifts with tree size. Variable <strong>rankings</strong>
+still agree (Spearman 1.0 on follic). For numeric/per-feature alignment, fit
+with matched config:
+<code>equivalence='rfsrc', samptype='swor', sampsize=1.0, min_samples_split=2*nodesize,
+min_samples_leaf=1, max_depth=None</code>.</p>
+<h2 id="7-treeshap-explanations">7. TreeSHAP explanations<a class="headerlink" href="#7-treeshap-explanations" title="Permanent link">&para;</a></h2>
+<p>Explain cause-specific CIF predictions with exact TreeSHAP (Lundberg 2018).
+Output shape is <code>(n_samples, n_features, n_times, n_causes)</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">shap</span><span class="p">,</span> <span class="n">base</span> <span class="o">=</span> <span class="n">forest</span><span class="o">.</span><span class="n">shap_values</span><span class="p">(</span><span class="n">X</span><span class="p">[:</span><span class="mi">10</span><span class="p">])</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="c1"># shap[0, :, 0, 0]  -&gt; feature attributions for subject 0, first time, cause 1</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="c1"># base[0, 0]        -&gt; expected CIF baseline for that (time, cause)</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="c1"># Additivity check: attributions + baseline reconstruct the CIF</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="n">reconstructed</span> <span class="o">=</span> <span class="n">shap</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">base</span>  <span class="c1"># (n, n_times, n_causes)</span>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">reconstructed</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>                   <span class="n">forest</span><span class="o">.</span><span class="n">predict_cif</span><span class="p">(</span><span class="n">X</span><span class="p">[:</span><span class="mi">10</span><span class="p">]))</span>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="c1"># Rank features by mean absolute SHAP (global importance)</span>
+<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="n">mean_abs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">shap</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="n">top_features</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">mean_abs</span><span class="p">)[::</span><span class="o">-</span><span class="mi">1</span><span class="p">][:</span><span class="mi">5</span><span class="p">]</span>
+<a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a>
+<a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a><span class="c1"># Slice for a fixed (time, cause) — compatible with shap.summary_plot</span>
+<a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a><span class="n">shap_slice</span> <span class="o">=</span> <span class="n">shap</span><span class="p">[:,</span> <span class="p">:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>   <span class="c1"># last timepoint, cause 1  (n, p)</span>
+<a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a>
+<a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a><span class="c1"># &quot;Risk-score&quot; SHAP — collapse the time axis to one scalar per cause</span>
+<a id="__codelineno-13-18" name="__codelineno-13-18" href="#__codelineno-13-18"></a><span class="c1"># *before* the attribution (the (n, p, n_times, n_causes) tensor is never</span>
+<a id="__codelineno-13-19" name="__codelineno-13-19" href="#__codelineno-13-19"></a><span class="c1"># built). Output shape (n, p, n_causes). &quot;sum&quot; == shap.sum(axis=2) exactly;</span>
+<a id="__codelineno-13-20" name="__codelineno-13-20" href="#__codelineno-13-20"></a><span class="c1"># &quot;trapezoid&quot; is the grid-spacing-aware time integral.</span>
+<a id="__codelineno-13-21" name="__codelineno-13-21" href="#__codelineno-13-21"></a><span class="n">risk_shap</span><span class="p">,</span> <span class="n">risk_base</span> <span class="o">=</span> <span class="n">forest</span><span class="o">.</span><span class="n">shap_values</span><span class="p">(</span><span class="n">X</span><span class="p">[:</span><span class="mi">10</span><span class="p">],</span> <span class="n">time_aggregate</span><span class="o">=</span><span class="s2">&quot;sum&quot;</span><span class="p">)</span>
+<a id="__codelineno-13-22" name="__codelineno-13-22" href="#__codelineno-13-22"></a>
+<a id="__codelineno-13-23" name="__codelineno-13-23" href="#__codelineno-13-23"></a><span class="c1"># Threaded over samples (default n_jobs=-1 = all cores). Bit-identical across</span>
+<a id="__codelineno-13-24" name="__codelineno-13-24" href="#__codelineno-13-24"></a><span class="c1"># thread counts; on a many-core node it scales ~linearly with cores.</span>
+<a id="__codelineno-13-25" name="__codelineno-13-25" href="#__codelineno-13-25"></a><span class="n">shap</span><span class="p">,</span> <span class="n">base</span> <span class="o">=</span> <span class="n">forest</span><span class="o">.</span><span class="n">shap_values</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</code></pre></div>
+<p>Backed by Lundberg (2018) Algorithm 2; bit-exact to <code>shap.TreeExplainer</code>
+at any fixed <code>(cause, time)</code> slice. The kernel is parallel over samples
+(<code>n_jobs</code>, default <code>-1</code>), so wall time scales ~linearly with <code>n_explain</code>
+and inversely with core count — for a large test set, give it a fat
+many-core node rather than sharding the work yourself. Cost is dominated by
+the tree traversal, <strong>not</strong> the time grid: <code>times=</code> width and
+<code>time_aggregate=</code> barely change wall time (they mainly bound output memory),
+so the lever for speed is cores, not grid size.</p>
+<p>As of 0.5.0 this is ~14×+ faster (SUN-74 — the <code>n_causes × n_times</code> factor
+moved out of the TreeSHAP recursion into one BLAS matmul; deep/wide trees see
+the larger gain). Indicative wall on a commodity 10-core machine: ~0.2 s for
+50 explained rows over the full 200-point grid on an 80-tree depth-15 forest;
+~5 s for 200 rows on a 100-tree forest trained on 10k rows. Thread
+parallelism saturates near <code>n_jobs ≈ 4</code> (memory-bandwidth bound).</p>
+<h2 id="8-performance-levers">8. Performance levers<a class="headerlink" href="#8-performance-levers" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Lever</th>
+<th>Default</th>
+<th>Rule of thumb</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>n_jobs</code></td>
+<td><code>-1</code> (all cores)</td>
+<td>The split kernel is numba-jitted and releases the GIL, so threads scale well in default mode. Reference mode is GIL-bound — <code>n_jobs=1</code> is fine there. Output is bit-identical across <code>n_jobs</code> for a fixed <code>random_state</code>.</td>
+</tr>
+<tr>
+<td><code>split_ntime</code></td>
+<td><code>10</code></td>
+<td>Coarse time bins for split-search log-rank; full grid is kept for CIF/CHF output. λ.exp6 measured 5.5× wall reduction at zero accuracy delta on real CHF. For very small cohorts (n ≲ 500) prefer <code>50</code> or <code>None</code>.</td>
+</tr>
+<tr>
+<td><code>nsplit</code></td>
+<td><code>10</code> (default mode), <code>0</code> (reference mode)</td>
+<td>rfSRC-style random split-point sampling. <code>0</code> evaluates every threshold (slower, exact).</td>
+</tr>
+<tr>
+<td><code>time_grid</code></td>
+<td><code>200</code></td>
+<td>Cap on internal time-grid size. Larger means more memory; smaller means coarser CIF.</td>
+</tr>
+<tr>
+<td><code>mode</code></td>
+<td><code>"default"</code></td>
+<td>Histogram tree (uint8-binned features). Use <code>"reference"</code> only when you need exhaustive split search for equivalence work.</td>
+</tr>
+</tbody>
+</table>
+<p>For repeated fits at the same n / p / ntree, the histogram split kernel
+benefits from numba caching after the first call — second-run wall is a
+useful "warm" baseline.</p>
+<h2 id="9-gpu-preview-optional">9. GPU preview (optional)<a class="headerlink" href="#9-gpu-preview-optional" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;comprisk[gpu]&quot;</span><span class="w">   </span><span class="c1"># cupy-cuda12x + cuda runtime</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="n">forest</span> <span class="o">=</span> <span class="n">CompetingRiskForest</span><span class="p">(</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>    <span class="n">n_estimators</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>    <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>    <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cuda&quot;</span><span class="p">,</span>            <span class="c1"># opt-in; &quot;auto&quot; resolves to &quot;cpu&quot; in v0.1</span>
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">event</span><span class="p">)</span>
+</code></pre></div>
+<p>Today the cuda path is faster only at low feature count (p ≲ 20). At
+typical clinical workloads (p ≈ 58) it is ~1.15× <strong>slower</strong> than CPU on
+the same machine because host orchestration and D ↔ H sync dominate the
+single-tree wall (kernels themselves are 4 % of total). The full GPU
+rewrite is scheduled for v1.1; until then <code>device="cuda"</code> is a preview
+flag for benchmarking and for users with low-p problems.</p>
+<p><code>device="cuda"</code> is incompatible with <code>equivalence="rfsrc"</code> /
+<code>rng_mode="rfsrc_aligned"</code>.</p>
+<h2 id="10-migrating-from-rfsrc">10. Migrating from rfSRC<a class="headerlink" href="#10-migrating-from-rfsrc" title="Permanent link">&para;</a></h2>
+<p><code>equivalence="rfsrc"</code> ports randomForestSRC's per-tree mtry/nsplit RNG
+stream + bootstrap-by-user inbag exposure so paired fits are bit-equivalent
+to the Z-cell numerical floor:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="n">forest</span> <span class="o">=</span> <span class="n">CompetingRiskForest</span><span class="p">(</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>    <span class="n">n_estimators</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>    <span class="n">equivalence</span><span class="o">=</span><span class="s2">&quot;rfsrc&quot;</span><span class="p">,</span>       <span class="c1"># bundles rng_mode=&#39;rfsrc_aligned&#39; + split_ntime=None</span>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>    <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>           <span class="c1"># explicit random_state required</span>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">event</span><span class="p">)</span>
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="c1"># Pair with R:  rfsrc(..., bootstrap = &quot;by.user&quot;, samp = forest.inbag_, seed = -42)</span>
+</code></pre></div>
+<p>Cross-library agreement on the four standard CR datasets (pbc, follic, hd,
+synthetic; ntree = 100): cross_p95_cif typically 0.005 — 0.07, dominated
+by per-tree-structure variance rather than RNG mismatch (see
+<a href="../equivalence-vs-rfsrc/"><code>docs/equivalence-vs-rfsrc.md</code></a> for the full
+methodology and limits).</p>
+<p>If your rfSRC fits feel slow on macOS, you're likely running effectively
+single-threaded: the CRAN R binary is not built with OpenMP, so rfSRC's
+<code>rf.cores</code> option silently does nothing. Confirm with <code>rfsrc(...)$openmp</code>
+or <code>library(parallel); detectCores()</code> against actual <code>top</code> CPU usage
+during a fit. Fixing it requires rebuilding R against a Homebrew
+gcc/clang with OpenMP support. comprisk gets parallelism out of the box
+(<code>n_jobs=-1</code> default) without any compile-time setup.</p>
+<p>Cost: the aligned RNG runs the per-tree state in pure Python (correctness
+over speed), so <code>equivalence="rfsrc"</code> is ~2–3× slower than the default
+numpy-RNG path. Use it for cross-checks; leave the default on for
+production fits.</p>
+<h2 id="whats-not-here-yet">What's not here yet<a class="headerlink" href="#whats-not-here-yet" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>predict_proba</code> / classification-style outputs.</li>
+<li>Distributed (multi-machine) training.</li>
+<li>Confidence intervals on VIMP (sklearn's <code>permutation_importance</code> reports
+  <code>importances_std</code>; we surface only <code>importances_mean</code> in the DataFrame).</li>
+</ul>
+<p>These are tracked for v1.0 / v1.1 — see the <a href="https://github.com/sunnyadn/comprisk/blob/main/README.md#roadmap">Roadmap</a>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "navigation.tracking", "content.code.copy", "content.code.annotate", "search.suggest", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
