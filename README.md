@@ -135,6 +135,7 @@ deep-survival), use [lifelines](https://lifelines.readthedocs.io/) or
 - [Benchmarks](docs/benchmarks.md) — full tables, methodology, reproduction scripts
 - [Equivalence vs rfSRC](docs/equivalence-vs-rfsrc.md) — cross-library validation
 - [References](docs/REFERENCES.md) — algorithmic provenance
+- [Use of generative AI](docs/generative-ai.md) — tools, scale, and what the authors decided
 
 ## Examples
 
@@ -153,6 +154,14 @@ uv venv && uv pip install -e ".[dev]"
 uv run pre-commit install
 uv run pytest && uv run ruff check .
 ```
+
+## Use of generative AI
+
+comprisk is developed with an AI coding agent under author review. Roughly 80%
+of the test suite and 50% of the library source began as agent drafts. The
+methodology, the estimator choices and the validation design are the authors',
+as is responsibility for what the package computes. Full disclosure:
+[Use of generative AI](https://sunnyadn.github.io/comprisk/generative-ai/).
 
 ## License & citation
 
