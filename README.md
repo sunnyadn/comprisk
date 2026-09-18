@@ -158,9 +158,8 @@ uv run pytest && uv run ruff check .
 ## Use of generative AI
 
 comprisk is developed with an AI coding agent under author review. Roughly 80%
-of the test suite and 50% of the library source began as agent drafts. The
-methodology, the estimator choices and the validation design are the authors',
-as is responsibility for what the package computes. Full disclosure:
+of the test suite and 50% of the library source began as agent drafts. Full
+disclosure:
 [Use of generative AI](https://sunnyadn.github.io/comprisk/generative-ai/).
 
 ## License & citation

@@ -1,19 +1,14 @@
 # Use of generative AI
 
-comprisk is developed with Claude Code, Anthropic's command-line coding agent.
-It works from written specifications, edits files in this repository, and runs
-the test suite and the benchmarks itself. The authors read its diffs and decide
-what merges. The agent writes no correspondence with editors or reviewers.
-
-The models are Claude Opus 5 and Claude Fable 5.1 in current development.
-Earlier development used Claude Opus 4.6, 4.7 and 4.8, with some Claude Sonnet.
+comprisk is developed with Claude Code, Anthropic's command-line coding agent,
+using Claude Opus and Claude Sonnet models. It works from written
+specifications, edits files in this repository, and runs the test suite and the
+benchmarks itself. The authors read its diffs and decide what merges.
 
 Roughly 80% of the test suite, 50% of the library source and 90% of the
 documentation began as agent drafts, and agent-drafted code appears in every
-module. The text of the accompanying paper was drafted the same way. The authors
-decided the statistical methodology, the choice and formulation of each
-estimator, the scikit-learn compatible API surface, and the validation
-described below.
+module. The authors decided the statistical methodology, the choice and
+formulation of each estimator, and the validation described below.
 
 Two mechanical checks run on top of that review. The regression and
 non-parametric estimators are gated on R-generated fixtures committed to the
