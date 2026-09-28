@@ -52,6 +52,7 @@ dev = [
     "ruff>=0.8",
     "pre-commit>=3.7",
     "pyarrow>=15.0",
+    "shap>=0.45",
 ]
 examples = [
     "marimo>=0.23",
