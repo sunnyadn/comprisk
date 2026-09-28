@@ -34,65 +34,20 @@ def cr_dataset(draw, min_samples=30, max_samples=80, max_features=6, max_causes=
 @pytest.mark.parametrize("nsplit", [0, 10])
 @settings(max_examples=15, deadline=None, suppress_health_check=[HealthCheck.too_slow])
 @given(data=cr_dataset())
-def test_cif_monotone_nondecreasing(data, mode, nsplit):
+def test_cif_and_chf_invariants(data, mode, nsplit):
     X, time, event, _ = data
     f = CompetingRiskForest(n_estimators=5, mode=mode, nsplit=nsplit, random_state=0).fit(
         X, time, event
     )
-    cif = f.predict_cif(X)
-    assert np.all(np.diff(cif, axis=2) >= -1e-9)
 
-
-@pytest.mark.parametrize("mode", ["default", "reference"])
-@pytest.mark.parametrize("nsplit", [0, 10])
-@settings(max_examples=15, deadline=None, suppress_health_check=[HealthCheck.too_slow])
-@given(data=cr_dataset())
-def test_cif_in_unit_interval(data, mode, nsplit):
-    X, time, event, _ = data
-    f = CompetingRiskForest(n_estimators=5, mode=mode, nsplit=nsplit, random_state=0).fit(
-        X, time, event
-    )
     cif = f.predict_cif(X)
     assert np.all(cif >= 0.0)
     assert np.all(cif <= 1.0 + 1e-9)
-
-
-@pytest.mark.parametrize("mode", ["default", "reference"])
-@pytest.mark.parametrize("nsplit", [0, 10])
-@settings(max_examples=15, deadline=None, suppress_health_check=[HealthCheck.too_slow])
-@given(data=cr_dataset())
-def test_cif_sum_across_causes_bounded_by_one(data, mode, nsplit):
-    X, time, event, _ = data
-    f = CompetingRiskForest(n_estimators=5, mode=mode, nsplit=nsplit, random_state=0).fit(
-        X, time, event
-    )
-    cif = f.predict_cif(X)
+    assert np.all(np.diff(cif, axis=2) >= -1e-9)
     total_final = cif.sum(axis=1)[:, -1]
     assert np.all(total_final <= 1.0 + 1e-9)
     assert np.all(total_final >= -1e-9)
 
-
-@pytest.mark.parametrize("mode", ["default", "reference"])
-@pytest.mark.parametrize("nsplit", [0, 10])
-@settings(max_examples=15, deadline=None, suppress_health_check=[HealthCheck.too_slow])
-@given(data=cr_dataset())
-def test_chf_monotone_nondecreasing(data, mode, nsplit):
-    X, time, event, _ = data
-    f = CompetingRiskForest(n_estimators=5, mode=mode, nsplit=nsplit, random_state=0).fit(
-        X, time, event
-    )
-    chf = f.predict_chf(X)
-    assert np.all(np.diff(chf, axis=2) >= -1e-9)
-
-
-@pytest.mark.parametrize("mode", ["default", "reference"])
-@pytest.mark.parametrize("nsplit", [0, 10])
-@settings(max_examples=15, deadline=None, suppress_health_check=[HealthCheck.too_slow])
-@given(data=cr_dataset())
-def test_chf_non_negative(data, mode, nsplit):
-    X, time, event, _ = data
-    f = CompetingRiskForest(n_estimators=5, mode=mode, nsplit=nsplit, random_state=0).fit(
-        X, time, event
-    )
     chf = f.predict_chf(X)
     assert np.all(chf >= -1e-12)
+    assert np.all(np.diff(chf, axis=2) >= -1e-9)
