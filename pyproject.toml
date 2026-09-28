@@ -108,11 +108,11 @@ addopts = [
     "--strict-markers",
     "--strict-config",
     "-m",
-    "not slow",
+    "not slow and not perf",
 ]
 markers = [
-    "slow: long-running paired-seed validation harness tests (opt-in via -m slow)",
-    "perf: performance gate tests",
+    "slow: long-running statistical and equivalence gates (opt-in via -m slow)",
+    "perf: wall-clock performance gates, noisy on shared runners (opt-in via -m perf)",
 ]
 
 [tool.ruff]
