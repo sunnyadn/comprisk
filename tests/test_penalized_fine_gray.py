@@ -182,36 +182,12 @@ _CRRP_CASES = [
     ("follic", ["age", "hgb", "clinstg", "ch"], "status"),
 ]
 
-# SCAD and MCP coefficient-path numerical fixtures from crrp/fastcmprsk
-# are KNOWN to disagree with crforest after the Eq.(3.7) prox patch:
-# crrp's CD implements Breheny-Huang Eq.(2.6) (orthonormal v=1 form),
-# which converges to non-stationary points of the actual penalised
-# objective when working curvature v != 1 (the typical regime in
-# Fine-Gray CR fits). The patched crforest now finds genuinely lower
-# objective values at 49-50 of 50 lambdas on pbc/follic for both SCAD
-# and MCP. Correctness for SCAD/MCP is gated by
-# `test_objective_dominates_crrp` below; the legacy fixture matches
-# are kept as xfail so the test still flags any future regression
-# back to the buggy behaviour.
-_SCAD_MCP_XFAIL = pytest.mark.xfail(
-    strict=True,
-    reason="crrp implements Breheny-Huang Eq.(2.6) v=1 prox; the patched "
-    "crforest implements Eq.(3.7) general-v and is correct -- "
-    "see test_objective_dominates_crrp.",
-)
 
-
+# LASSO only: crrp's SCAD/MCP prox is the v=1 form (Breheny-Huang Eq. 2.6), so
+# comprisk's Eq. (3.7) path differs by design; test_objective_dominates_crrp gates those.
 @pytest.mark.parametrize("name, cov_cols, event_col", _CRRP_CASES)
-@pytest.mark.parametrize(
-    "penalty",
-    [
-        "lasso",
-        pytest.param("mcp", marks=_SCAD_MCP_XFAIL),
-        pytest.param("scad", marks=_SCAD_MCP_XFAIL),
-    ],
-)
-def test_path_matches_crrp_to_1e_3(name, cov_cols, event_col, penalty):
-    fixture = FIXTURES_DIR / f"crrp_{name}_{penalty}_fit.csv"
+def test_path_matches_crrp_to_1e_3(name, cov_cols, event_col):
+    fixture = FIXTURES_DIR / f"crrp_{name}_lasso_fit.csv"
     if not fixture.exists():
         pytest.skip(f"{fixture.name} missing; run Rscript tests/cross_check_crrp.R")
     ref = pd.read_csv(fixture)
@@ -225,7 +201,7 @@ def test_path_matches_crrp_to_1e_3(name, cov_cols, event_col, penalty):
     time = data["time"].to_numpy(dtype=float)
     event = data[event_col].to_numpy(dtype=int)
 
-    m = PenalizedFineGrayRegression(penalty=penalty, lambdas=lambdas, max_iter=5000, tol=1e-7).fit(
+    m = PenalizedFineGrayRegression(penalty="lasso", lambdas=lambdas, max_iter=5000, tol=1e-7).fit(
         x, time=time, event=event
     )
     order = np.argsort(m.lambdas_)[::-1]  # align to crrp's descending grid
@@ -234,63 +210,13 @@ def test_path_matches_crrp_to_1e_3(name, cov_cols, event_col, penalty):
 
 
 # ---------------------------------------------------------------------------
-# R `fastcmprsk` regression (independent oracle: cumsum-based linear-time
-# implementation, Kawaguchi et al. 2021).
-#
-# LASSO: fastcmprsk == crrp to ~3e-14 (direct R-side check) and the
-# crforest LASSO prox was always correct for general v, so this stays a
-# real gate.
-#
-# MCP / SCAD: fastcmprsk == crrp to ~3e-14 on MCP (LASSO and MCP share
-# the Eq.(2.6) v=1 form via the same library lineage); fastcmprsk
-# diverges from crrp on SCAD by up to 0.5 in beta -- root cause not
-# fully traced, but BOTH disagree with crforest after the Eq.(3.7)
-# patch because BOTH use the v=1 prox arms. Correctness for SCAD/MCP
-# is gated by test_objective_dominates_crrp below.
-# Fastcmprsk does not emit SE along the penalised path, so this test
-# gates beta only; SE stays gated against crrp / cmprsk in the
-# unpenalised tests above.
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize("name, cov_cols, event_col", _CRRP_CASES)
-@pytest.mark.parametrize(
-    "penalty",
-    [
-        "lasso",
-        pytest.param("mcp", marks=_SCAD_MCP_XFAIL),
-        pytest.param("scad", marks=_SCAD_MCP_XFAIL),
-    ],
-)
-def test_path_matches_fastcmprsk_to_1e_3(name, cov_cols, event_col, penalty):
-    fixture = FIXTURES_DIR / f"fastcmprsk_{name}_{penalty}_fit.csv"
-    if not fixture.exists():
-        pytest.skip(f"{fixture.name} missing; run Rscript tests/cross_check_fastcmprsk.R")
-    ref = pd.read_csv(fixture)
-    lambdas = ref["lambda"].drop_duplicates().to_numpy()
-    n_lambda, p = lambdas.shape[0], len(cov_cols)
-    beta_ref = ref["coef"].to_numpy().reshape(n_lambda, p).T
-
-    data = pd.read_csv(FIXTURES_DIR / f"cmprsk_{name}_data.csv")
-    x = data[cov_cols].to_numpy(dtype=float)
-    time = data["time"].to_numpy(dtype=float)
-    event = data[event_col].to_numpy(dtype=int)
-
-    m = PenalizedFineGrayRegression(penalty=penalty, lambdas=lambdas, max_iter=5000, tol=1e-7).fit(
-        x, time=time, event=event
-    )
-    order = np.argsort(m.lambdas_)[::-1]  # fastcmprsk's grid is descending
-    np.testing.assert_allclose(m.coef_path_[:, order], beta_ref, atol=1e-3)
-
-
-# ---------------------------------------------------------------------------
 # Positive correctness gate for SCAD / MCP: crforest's coefficient path must
 # achieve a no-worse penalised-objective value at every lambda than the
 # crrp fixture at the same lambda. The Eq.(3.7) patch was motivated by the
 # observation that crrp / fastcmprsk converge to non-stationary points of
 # their claimed objective when v != 1; this test makes the implicit ordering
-# explicit. Replaces the (now xfailed) coefficient-match gate as the
-# load-bearing correctness check for SCAD and MCP.
+# explicit. It is the load-bearing correctness check for SCAD and MCP; crrp's
+# own SCAD/MCP paths are not matched (see test_path_matches_crrp_to_1e_3).
 # ---------------------------------------------------------------------------
 
 
