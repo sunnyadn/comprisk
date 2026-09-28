@@ -127,11 +127,6 @@ def test_shap_synthetic_important_feature():
 
 
 # ---------------------------------------------------------------------------
-# SHAP ranking sanity vs OOB VIMP
-# ---------------------------------------------------------------------------
-
-
-# ---------------------------------------------------------------------------
 # Base value properties
 # ---------------------------------------------------------------------------
 
@@ -352,8 +347,3 @@ def test_shap_repeated_calls_are_identical():
     sa2, ba2 = f.shap_values(X, time_aggregate="sum")
     assert np.array_equal(sa1, sa2)
     assert np.array_equal(ba1, ba2)
-
-
-# ---------------------------------------------------------------------------
-# Compatibility: slice extraction for shap.summary_plot
-# ---------------------------------------------------------------------------
