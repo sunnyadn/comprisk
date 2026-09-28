@@ -8,9 +8,9 @@ the paper. Two kinds of content live here:
 | `comparisons/` | Cross-library benchmarks (comprisk vs rfSRC, vs scikit-survival). One canonical script per published comparison. | Stable. README + paper cite these by path. |
 | `scaling/` *(planned)* | comprisk standalone scaling matrices (n, p, ntree, device axes). | Stable once added. |
 | `alignment/` | Equivalence diagnostics vs rfSRC (`equivalence='rfsrc'` correctness). | Stable. |
-| `baselines/` | rfSRC reference outputs as parquet. Inputs to alignment tests. | Stable. |
+| `baselines/` | rfSRC per-seed risk outputs as parquet (`gen_rfsrc_baselines.R`). Reference data only: their reader, the paired-seed `runner.py` harness, was retired. | Stable. |
 | `data/` | Static datasets used by alignment + small benches (pbc, follic, hd, synthetic). | Stable. |
-| `benches/`, `bench_*.py`, `runner.py`, `report.py` | Older internal benches, kept for backward compat. | Frozen; new work goes in `comparisons/` or `scaling/`. |
+| `benches/`, `bench_*.py` | Older internal benches, kept for backward compat. | Frozen; new work goes in `comparisons/` or `scaling/`. |
 | `spikes/` | Sprint-coded exploration logs (`eta`, `iota`, `kappa`, `lambda`, `theta`, `zeta`). | **Lab-notebook tier.** Numbers may have been retracted; do not cite without checking the corresponding canonical bench in `comparisons/` or `scaling/`. |
 
 Every script in `comparisons/` calls `_fingerprint.dump_fingerprint(out)` at
