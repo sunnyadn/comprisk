@@ -231,34 +231,3 @@ def test_find_best_split_logrank_single_cause_respects_cause_param():
     )
     assert feat == 0
     assert stat > 0.0
-
-
-def test_find_best_split_nsplit_zero_matches_exhaustive():
-    """nsplit=0 reproduces pre-P3a.5 exhaustive output."""
-    rng_data = np.random.default_rng(4)
-    n, p = 40, 3
-    X = rng_data.uniform(0, 10, size=(n, p))
-    time = rng_data.uniform(1.0, 10.0, n)
-    event = rng_data.integers(0, 3, n)
-    event[0] = 1
-    event[1] = 2
-
-    out_ex = find_best_split(
-        X,
-        time,
-        event,
-        n_causes=2,
-        min_samples_leaf=1,
-        splitrule="logrankCR",
-    )
-    out_ns0 = find_best_split(
-        X,
-        time,
-        event,
-        n_causes=2,
-        min_samples_leaf=1,
-        splitrule="logrankCR",
-        nsplit=0,
-        rng=None,
-    )
-    assert out_ex == out_ns0

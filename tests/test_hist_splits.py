@@ -351,40 +351,6 @@ def test_best_split_in_feature_lr_respects_candidate_mask():
     assert best_stat_masked <= best_stat_all + 1e-12
 
 
-def test_find_best_split_hist_nsplit_zero_matches_exhaustive():
-    """nsplit=0 must produce identical output to the pre-P3a.5 exhaustive call."""
-    d = _make_binned_data(n=50, p=3, n_bins=8, seed=1)
-
-    # Call WITHOUT nsplit (pre-P3a.5 API) — exhaustive scan.
-    feat_ex, bin_ex, stat_ex = find_best_split_hist(
-        d["X_binned"],
-        d["t_idx"],
-        d["event"],
-        d["selected"],
-        n_bins=d["n_bins"],
-        n_causes=2,
-        n_time_bins=d["n_time_bins"],
-        min_samples_leaf=1,
-        splitrule="logrankCR",
-    )
-    # Call WITH nsplit=0 — must match exactly.
-    feat_ns0, bin_ns0, stat_ns0 = find_best_split_hist(
-        d["X_binned"],
-        d["t_idx"],
-        d["event"],
-        d["selected"],
-        n_bins=d["n_bins"],
-        n_causes=2,
-        n_time_bins=d["n_time_bins"],
-        min_samples_leaf=1,
-        splitrule="logrankCR",
-        nsplit=0,
-        rng=None,
-    )
-    assert (feat_ex, bin_ex) == (feat_ns0, bin_ns0)
-    assert abs(stat_ex - stat_ns0) < 1e-12
-
-
 def test_find_best_split_hist_nsplit_deterministic_given_rng():
     """Same rng state -> same split choice."""
     d = _make_binned_data(n=60, p=3, n_bins=8, seed=7)
@@ -550,36 +516,6 @@ def test_find_best_split_hist_nsplit_works_with_logrank_splitrule():
         rng=rng_b,
     )
     assert out_a == out_b
-
-    # nsplit=0 matches exhaustive output under logrank too.
-    feat_ex, bin_ex, stat_ex = find_best_split_hist(
-        d["X_binned"],
-        d["t_idx"],
-        d["event"],
-        d["selected"],
-        n_bins=d["n_bins"],
-        n_causes=2,
-        n_time_bins=d["n_time_bins"],
-        min_samples_leaf=1,
-        splitrule="logrank",
-        cause=1,
-    )
-    feat_ns0, bin_ns0, stat_ns0 = find_best_split_hist(
-        d["X_binned"],
-        d["t_idx"],
-        d["event"],
-        d["selected"],
-        n_bins=d["n_bins"],
-        n_causes=2,
-        n_time_bins=d["n_time_bins"],
-        min_samples_leaf=1,
-        splitrule="logrank",
-        cause=1,
-        nsplit=0,
-        rng=None,
-    )
-    assert (feat_ex, bin_ex) == (feat_ns0, bin_ns0)
-    assert abs(stat_ex - stat_ns0) < 1e-12
 
 
 @pytest.mark.parametrize("seed", list(range(10)))

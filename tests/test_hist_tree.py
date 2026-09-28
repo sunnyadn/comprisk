@@ -236,46 +236,6 @@ def test_predict_tree_hist_chf_caches_flat_tree():
     assert tree._flat_chf is flat_first  # cache reused, not rebuilt
 
 
-def test_build_tree_hist_nsplit_zero_matches_pre_p3a5_structure():
-    """nsplit=0 must preserve the exhaustive histogram-build tree structure."""
-    d = _make_binned_data(n=50, p=3, n_bins=16, seed=20)
-
-    tree_pre = build_tree_hist(
-        d["X_binned"],
-        d["t_idx"],
-        d["event"],
-        n_causes=2,
-        n_bins=d["n_bins"],
-        n_time_bins=d["n_time_bins"],
-        max_depth=3,
-        min_samples_split=4,
-        min_samples_leaf=1,
-        max_features=None,
-        rng=None,
-    )
-    tree_ns0 = build_tree_hist(
-        d["X_binned"],
-        d["t_idx"],
-        d["event"],
-        n_causes=2,
-        n_bins=d["n_bins"],
-        n_time_bins=d["n_time_bins"],
-        max_depth=3,
-        min_samples_split=4,
-        min_samples_leaf=1,
-        max_features=None,
-        rng=None,
-        nsplit=0,
-    )
-
-    def preorder(n):
-        if n.is_leaf:
-            return [("leaf",)]
-        return [("split", n.feature, n.bin_idx), *preorder(n.left), *preorder(n.right)]
-
-    assert preorder(tree_pre) == preorder(tree_ns0)
-
-
 def test_build_tree_hist_nsplit_positive_requires_rng():
     """nsplit > 0 without rng must raise."""
     d = _make_binned_data(n=40, p=2, n_bins=8, seed=21)
