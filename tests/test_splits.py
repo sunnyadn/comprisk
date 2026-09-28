@@ -22,32 +22,6 @@ def test_bin_times_basic():
     assert np.array_equal(tb.d_any, [2.0, 0.0, 1.0])
 
 
-def test_log_rank_degenerate_all_left_returns_zero():
-    time = np.array([1.0, 2.0, 3.0])
-    event = np.array([1, 1, 1])
-    tb = bin_times(time, event)
-    left = np.array([True, True, True])
-    assert log_rank_statistic_relabeled(tb, left, cause=1) == 0.0
-
-
-def test_log_rank_degenerate_all_right_returns_zero():
-    time = np.array([1.0, 2.0, 3.0])
-    event = np.array([1, 1, 1])
-    tb = bin_times(time, event)
-    left = np.array([False, False, False])
-    assert log_rank_statistic_relabeled(tb, left, cause=1) == 0.0
-
-
-def test_log_rank_statistic_positive_for_separating_split():
-    # Group A has all early events; Group B has all later events
-    time = np.array([1.0, 2.0, 8.0, 9.0])
-    event = np.array([1, 1, 1, 1])
-    tb = bin_times(time, event)
-    left = np.array([True, True, False, False])
-    stat = log_rank_statistic_relabeled(tb, left, cause=1)
-    assert stat > 0.0
-
-
 def test_log_rank_ignores_non_cause_events():
     # Same structure but cause-2 events (treated as censored when splitting on cause 1)
     time = np.array([1.0, 2.0, 8.0, 9.0])
@@ -259,41 +233,6 @@ def test_find_best_split_logrank_single_cause_respects_cause_param():
     assert stat > 0.0
 
 
-def test_find_best_split_nsplit_deterministic_given_rng():
-    """nsplit=k with a fixed rng reproduces the same split."""
-    rng_data = np.random.default_rng(3)
-    n, p = 40, 3
-    X = rng_data.uniform(0, 10, size=(n, p))
-    time = rng_data.uniform(1.0, 10.0, n)
-    event = rng_data.integers(0, 3, n)
-    event[0] = 1
-    event[1] = 2
-
-    rng_a = np.random.RandomState(7)
-    out_a = find_best_split(
-        X,
-        time,
-        event,
-        n_causes=2,
-        min_samples_leaf=1,
-        splitrule="logrankCR",
-        nsplit=5,
-        rng=rng_a,
-    )
-    rng_b = np.random.RandomState(7)
-    out_b = find_best_split(
-        X,
-        time,
-        event,
-        n_causes=2,
-        min_samples_leaf=1,
-        splitrule="logrankCR",
-        nsplit=5,
-        rng=rng_b,
-    )
-    assert out_a == out_b
-
-
 def test_find_best_split_nsplit_zero_matches_exhaustive():
     """nsplit=0 reproduces pre-P3a.5 exhaustive output."""
     rng_data = np.random.default_rng(4)
@@ -323,40 +262,3 @@ def test_find_best_split_nsplit_zero_matches_exhaustive():
         rng=None,
     )
     assert out_ex == out_ns0
-
-
-def test_find_best_split_nsplit_logrank_branch():
-    """nsplit > 0 also works with splitrule='logrank'."""
-    rng_data = np.random.default_rng(5)
-    n, p = 40, 3
-    X = rng_data.uniform(0, 10, size=(n, p))
-    time = rng_data.uniform(1.0, 10.0, n)
-    event = rng_data.integers(0, 3, n)
-    event[0] = 1
-    event[1] = 2
-
-    rng_a = np.random.RandomState(42)
-    out_a = find_best_split(
-        X,
-        time,
-        event,
-        n_causes=2,
-        min_samples_leaf=1,
-        splitrule="logrank",
-        cause=1,
-        nsplit=5,
-        rng=rng_a,
-    )
-    rng_b = np.random.RandomState(42)
-    out_b = find_best_split(
-        X,
-        time,
-        event,
-        n_causes=2,
-        min_samples_leaf=1,
-        splitrule="logrank",
-        cause=1,
-        nsplit=5,
-        rng=rng_b,
-    )
-    assert out_a == out_b

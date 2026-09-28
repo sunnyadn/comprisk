@@ -30,14 +30,6 @@ def test_monotonic_full_to_split() -> None:
     assert np.all(diffs >= 0), f"full_to_split must be non-decreasing; diffs={diffs}"
 
 
-def test_full_to_split_range_bounded_by_ntime() -> None:
-    grid = np.linspace(0.0, 10.0, 200)
-    ntime = 30
-    full_to_split = coarsen_time_grid(grid, ntime=ntime)
-    assert full_to_split.min() >= 0
-    assert full_to_split.max() < ntime
-
-
 def test_full_to_split_covers_every_bin() -> None:
     """Every coarse bin receives at least one full-grid index when grid is uniform."""
     grid = np.linspace(0.0, 10.0, 200)

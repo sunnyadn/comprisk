@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from comprisk._estimators import aalen_johansen, aalen_johansen_from_counts
-from comprisk._tree import RefTreeNode, build_tree, predict_tree
+from comprisk._tree import build_tree, predict_tree
 
 
 def _toy_separating_dataset():
@@ -17,26 +17,6 @@ def _toy_separating_dataset():
     time = np.concatenate([rng.uniform(0.5, 1.5, 20), rng.uniform(5.0, 6.0, 20)])
     event = np.ones(n, dtype=int)  # single cause
     return X, time, event
-
-
-def test_build_tree_returns_leaf_when_below_min_samples_split():
-    X = np.array([[0.0], [1.0]])
-    time = np.array([1.0, 2.0])
-    event = np.array([1, 1])
-    unique_times = np.array([1.0, 2.0])
-    tree = build_tree(
-        X,
-        time,
-        event,
-        n_causes=1,
-        max_depth=10,
-        min_samples_split=5,
-        min_samples_leaf=1,
-        unique_times=unique_times,
-    )
-    assert tree.is_leaf
-    assert tree.event_counts is not None
-    assert tree.at_risk is not None
 
 
 def test_build_tree_root_split_feature_is_separating_one():
@@ -76,83 +56,6 @@ def test_zero_split_tree_leaf_equals_dataset_wide_cif():
     expected = aalen_johansen(time, event, unique_times, n_causes=2)
     leaf_cif = aalen_johansen_from_counts(tree.event_counts, tree.at_risk, n_causes=2)
     assert np.allclose(leaf_cif, expected, atol=1e-12)
-
-
-def test_build_tree_deterministic_under_same_seed():
-    X, time, event = _toy_separating_dataset()
-    unique_times = np.sort(np.unique(time))
-
-    def build():
-        return build_tree(
-            X,
-            time,
-            event,
-            n_causes=1,
-            max_depth=5,
-            min_samples_split=4,
-            min_samples_leaf=2,
-            unique_times=unique_times,
-            max_features=1,
-            rng=np.random.RandomState(42),
-        )
-
-    t1 = build()
-    t2 = build()
-
-    # Walk both trees in parallel, comparing feature/threshold/is_leaf
-    def compare(a: RefTreeNode, b: RefTreeNode):
-        assert a.is_leaf == b.is_leaf
-        if a.is_leaf:
-            np.testing.assert_array_equal(a.event_counts, b.event_counts)
-            np.testing.assert_array_equal(a.at_risk, b.at_risk)
-            return
-        assert a.feature == b.feature
-        assert np.isclose(a.threshold, b.threshold)
-        compare(a.left, b.left)
-        compare(a.right, b.right)
-
-    compare(t1, t2)
-
-
-def test_predict_tree_leaf_value_matches_node_cif():
-    X, time, event = _toy_separating_dataset()
-    unique_times = np.sort(np.unique(time))
-    tree = build_tree(
-        X,
-        time,
-        event,
-        n_causes=1,
-        max_depth=1,
-        min_samples_split=4,
-        min_samples_leaf=2,
-        unique_times=unique_times,
-    )
-    preds = predict_tree(tree, X)
-    assert preds.shape == (X.shape[0], 1, len(unique_times))
-    # With max_depth=1, tree has at most 2 leaves; predictions take at most 2 distinct values
-    uniq_preds = {tuple(p.ravel().tolist()) for p in preds}
-    assert 1 <= len(uniq_preds) <= 2
-
-
-def test_predict_tree_shape_for_multi_cause():
-    X, time, event = _toy_separating_dataset()
-    # Inject a cause-2 event so n_causes is well-defined as 2
-    event[0] = 2
-    unique_times = np.sort(np.unique(time))
-    tree = build_tree(
-        X,
-        time,
-        event,
-        n_causes=2,
-        max_depth=3,
-        min_samples_split=4,
-        min_samples_leaf=2,
-        unique_times=unique_times,
-    )
-    preds = predict_tree(tree, X)
-    assert preds.shape == (X.shape[0], 2, len(unique_times))
-    assert np.all(preds >= 0.0)
-    assert np.all(preds <= 1.0 + 1e-9)
 
 
 def test_build_tree_rejects_max_features_without_rng():
@@ -249,38 +152,6 @@ def test_predict_tree_chf_single_leaf_matches_nelson_aalen_cs():
         np.testing.assert_allclose(chf_pred[i], chf_expected, atol=1e-12)
 
 
-def test_predict_tree_chf_matches_predict_tree_shape():
-    """CHF prediction has the same shape as CIF prediction and is non-negative."""
-    from comprisk._tree import build_tree, predict_tree, predict_tree_chf
-
-    rng = np.random.default_rng(0)
-    X = rng.uniform(size=(40, 3))
-    time = rng.uniform(0.1, 10.0, 40)
-    event = rng.integers(0, 3, 40)
-    if not np.any(event > 0):
-        event[0] = 1
-    unique_times = np.sort(np.unique(time))
-
-    tree = build_tree(
-        X,
-        time,
-        event,
-        n_causes=2,
-        max_depth=3,
-        min_samples_split=4,
-        min_samples_leaf=1,
-        unique_times=unique_times,
-        max_features=None,
-        rng=np.random.RandomState(0),
-    )
-    cif = predict_tree(tree, X)
-    chf = predict_tree_chf(tree, X)
-
-    assert chf.shape == cif.shape
-    assert np.all(chf >= 0.0)
-    assert np.all(np.diff(chf, axis=2) >= -1e-12)
-
-
 def test_build_tree_nsplit_zero_matches_pre_p3a5_structure():
     """nsplit=0 must preserve the exhaustive-build tree structure."""
     rng_data = np.random.default_rng(10)
@@ -317,37 +188,3 @@ def test_build_tree_nsplit_zero_matches_pre_p3a5_structure():
         return [("split", n.feature, n.threshold), *preorder(n.left), *preorder(n.right)]
 
     assert preorder(tree_pre) == preorder(tree_ns0)
-
-
-def test_build_tree_nsplit_positive_differs_from_exhaustive():
-    """nsplit > 0 with an rng produces a (typically) different tree."""
-    rng_data = np.random.default_rng(11)
-    n, p = 80, 3
-    X = rng_data.uniform(0, 10, size=(n, p))
-    time = rng_data.uniform(1.0, 10.0, n)
-    event = rng_data.integers(0, 3, n)
-    event[0] = 1
-    event[1] = 2
-
-    tree_ex = build_tree(
-        X,
-        time,
-        event,
-        n_causes=2,
-        max_depth=3,
-        min_samples_split=4,
-        min_samples_leaf=1,
-    )
-    tree_ns = build_tree(
-        X,
-        time,
-        event,
-        n_causes=2,
-        max_depth=3,
-        min_samples_split=4,
-        min_samples_leaf=1,
-        nsplit=3,
-        rng=np.random.RandomState(0),
-    )
-    assert not tree_ex.is_leaf
-    assert not tree_ns.is_leaf

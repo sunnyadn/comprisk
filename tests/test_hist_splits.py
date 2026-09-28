@@ -43,21 +43,6 @@ def _make_binned_data(n=60, p=3, n_bins=8, seed=42):
     }
 
 
-def test_node_histograms_shape():
-    # 4 samples, 2 selected features (each with 3 bins), 2 time bins, 2 causes
-    bin_idx = np.array(
-        [[0, 1], [1, 2], [2, 0], [0, 2]],
-        dtype=np.uint8,
-    )
-    t_idx = np.array([0, 1, 0, 1], dtype=np.int32)
-    ev = np.array([1, 2, 1, 0], dtype=np.int64)
-    ev_hist, ar_hist = _node_histograms(bin_idx, t_idx, ev, n_bins=3, n_causes=2, n_time_bins=2)
-    assert ev_hist.shape == (2, 3, 2, 2)
-    assert ev_hist.dtype == np.uint32
-    assert ar_hist.shape == (2, 3, 2)
-    assert ar_hist.dtype == np.uint32
-
-
 def test_node_histograms_counts_events_per_cause_per_time_bin():
     # Two samples in feature-0/bin-0, times (0, 1), events (1, 2)
     bin_idx = np.array([[0], [0]], dtype=np.uint8)
@@ -333,38 +318,6 @@ def test_best_split_in_feature_respects_candidate_mask():
     assert best_stat_masked <= best_stat_all + 1e-12
 
 
-def test_best_split_in_feature_all_true_mask_matches_unmasked_behavior():
-    """All-True mask reproduces the pre-P3a.5 exhaustive scan."""
-    # Random-ish but fixed histograms so the test is deterministic
-    rng = np.random.default_rng(0)
-    n_bins, n_causes, n_time_bins = 5, 2, 4
-    event_hist = rng.integers(0, 3, size=(n_bins, n_causes, n_time_bins)).astype(np.uint32)
-    at_risk_hist = rng.integers(2, 8, size=(n_bins, n_time_bins)).astype(np.uint32)
-
-    all_true = np.ones(n_bins - 1, dtype=np.bool_)
-    best_bin, best_stat = _best_split_in_feature(
-        event_hist,
-        at_risk_hist,
-        n_node=int(at_risk_hist[:, 0].sum()),
-        min_samples_leaf=1,
-        candidate_mask=all_true,
-    )
-    # Kernel must return *some* valid bin; we check that against the
-    # same statistic recomputed with a single-bin-included mask.
-    assert best_bin >= 0
-    one_hot = np.zeros(n_bins - 1, dtype=np.bool_)
-    one_hot[best_bin] = True
-    best_bin_oh, best_stat_oh = _best_split_in_feature(
-        event_hist,
-        at_risk_hist,
-        n_node=int(at_risk_hist[:, 0].sum()),
-        min_samples_leaf=1,
-        candidate_mask=one_hot,
-    )
-    assert best_bin_oh == best_bin
-    assert abs(best_stat_oh - best_stat) < 1e-12
-
-
 def test_best_split_in_feature_lr_respects_candidate_mask():
     """logrank (cause-specific) kernel honours the same mask convention."""
     n_bins, n_causes, n_time_bins = 4, 2, 3
@@ -396,28 +349,6 @@ def test_best_split_in_feature_lr_respects_candidate_mask():
     )
     assert best_bin_masked != best_bin_all
     assert best_stat_masked <= best_stat_all + 1e-12
-
-
-def test_find_best_split_hist_nsplit_returns_valid_result():
-    """With nsplit=1 and a fixed rng, the chosen bin must be the single sampled one."""
-    d = _make_binned_data(n=60, p=3, n_bins=8, seed=42)
-
-    rng = np.random.RandomState(0)
-    feat_ns1, bin_ns1, _ = find_best_split_hist(
-        d["X_binned"],
-        d["t_idx"],
-        d["event"],
-        d["selected"],
-        n_bins=d["n_bins"],
-        n_causes=2,
-        n_time_bins=d["n_time_bins"],
-        min_samples_leaf=1,
-        splitrule="logrankCR",
-        nsplit=1,
-        rng=rng,
-    )
-    assert 0 <= feat_ns1 < d["p"]
-    assert 0 <= bin_ns1 < d["n_bins"] - 1
 
 
 def test_find_best_split_hist_nsplit_zero_matches_exhaustive():

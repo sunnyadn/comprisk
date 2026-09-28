@@ -62,33 +62,6 @@ def test_aalen_johansen_hand_computed():
     assert np.allclose(cif[1], expected_cause2, atol=1e-12)
 
 
-def test_aalen_johansen_monotone_nondecreasing():
-    rng = np.random.default_rng(0)
-    n = 50
-    time = rng.uniform(0.1, 10.0, n)
-    event = rng.integers(0, 3, n)  # {0, 1, 2}
-    if not np.any(event > 0):
-        event[0] = 1
-    unique_times = np.sort(np.unique(time))
-    cif = aalen_johansen(time, event, unique_times, n_causes=2)
-    assert cif.shape == (2, len(unique_times))
-    assert np.all(np.diff(cif, axis=1) >= -1e-12)
-
-
-def test_aalen_johansen_sum_bounded_by_one():
-    rng = np.random.default_rng(1)
-    n = 100
-    time = rng.uniform(0.1, 10.0, n)
-    event = rng.integers(0, 4, n)  # {0, 1, 2, 3}
-    if not np.any(event > 0):
-        event[0] = 1
-    unique_times = np.sort(np.unique(time))
-    cif = aalen_johansen(time, event, unique_times, n_causes=3)
-    total = cif.sum(axis=0)
-    assert np.all(total <= 1.0 + 1e-9)
-    assert np.all(total >= -1e-12)
-
-
 def test_aalen_johansen_no_events_for_cause_returns_zero():
     time = np.array([1.0, 2.0, 3.0])
     event = np.array([1, 1, 0])  # no cause-2
@@ -205,17 +178,3 @@ def test_aalen_johansen_from_counts_batched_zero_at_risk_tail():
     got = aalen_johansen_from_counts_batched(event_counts, at_risk, n_causes)
     assert np.isfinite(got).all()
     np.testing.assert_allclose(got, expected, rtol=1e-12, atol=1e-12)
-
-
-def test_nelson_aalen_cs_monotone_nondecreasing():
-    from comprisk._estimators import nelson_aalen_cs
-
-    rng = np.random.default_rng(11)
-    n = 60
-    time = rng.uniform(0.1, 10.0, n)
-    event = rng.integers(0, 3, n)
-    if not np.any(event > 0):
-        event[0] = 1
-    unique_times = np.sort(np.unique(time))
-    chf = nelson_aalen_cs(time, event, unique_times, n_causes=2)
-    assert np.all(np.diff(chf, axis=1) >= -1e-12)

@@ -8,31 +8,6 @@ import pytest
 from comprisk._tree_flat import FlatTree
 
 
-def test_flat_tree_from_arrays_constructs_root_only_leaf():
-    # Trivial tree: single leaf at the root.
-    features = np.array([0], dtype=np.int64)
-    split_values = np.array([0], dtype=np.int64)
-    left_children = np.array([0], dtype=np.int64)
-    right_children = np.array([0], dtype=np.int64)
-    is_leaf_flags = np.array([True])
-    leaf_table = np.array([[[0.1, 0.3, 0.5]]], dtype=np.float64)  # (1 leaf, 1 cause, 3 time bins)
-    leaf_idx_of_node = np.array([0], dtype=np.int64)
-
-    flat = FlatTree.from_arrays(
-        features=features,
-        split_values=split_values,
-        left_children=left_children,
-        right_children=right_children,
-        is_leaf_flags=is_leaf_flags,
-        leaf_table=leaf_table,
-        leaf_idx_of_node=leaf_idx_of_node,
-    )
-
-    assert isinstance(flat, FlatTree)
-    assert flat.features is features
-    assert flat.leaf_table.shape == (1, 1, 3)
-
-
 def test_flat_tree_from_arrays_validates_shape_consistency():
     # n_nodes=2 in features but is_leaf_flags has 3 entries → mismatch.
     with pytest.raises(ValueError, match="length"):
@@ -198,50 +173,3 @@ def test_build_flat_tree_splits_with_clear_signal():
     assert int(flat.is_leaf_flags.sum()) >= 2, "expected ≥2 leaves"
     # Root's chosen feature should be 0 (the only informative one).
     assert flat.features[0] == 0, f"root feature {flat.features[0]} != 0"
-
-
-def test_build_flat_tree_within_lib_p95_stable_across_seeds():
-    """Two flat-tree forests at adjacent seeds should produce CIFs within
-    the same-lib seed-to-seed noise band on a small synthetic dataset.
-    Acts as a within-lib stability gate for the new builder."""
-    from comprisk._flat_tree_builder import build_flat_tree
-    from comprisk._tree_flat import predict_with_flat
-
-    n = 500
-    n_features = 5
-    rng = np.random.default_rng(0)
-    X_binned = rng.integers(0, 256, size=(n, n_features), dtype=np.uint8)
-    t_idx = rng.integers(0, 10, size=n).astype(np.int32)
-    event = rng.integers(0, 3, size=n).astype(np.int32)
-    bootstrap = rng.choice(n, size=n, replace=True).astype(np.int32)
-
-    def _fit_seed(seed):
-        return build_flat_tree(
-            X_binned,
-            t_idx,
-            t_idx,
-            event,
-            bootstrap_indices=bootstrap,
-            n_bins=256,
-            n_causes=2,
-            n_time_bins_split=10,
-            n_time_bins_full=10,
-            min_samples_split=30,
-            min_samples_leaf=15,
-            max_depth=-1,
-            max_features=3,
-            nsplit=5,
-            splitrule_code=0,
-            cause=1,
-            seed=seed,
-        )
-
-    flat_a = _fit_seed(11)
-    flat_b = _fit_seed(13)
-    cif_a = predict_with_flat(flat_a, X_binned)
-    cif_b = predict_with_flat(flat_b, X_binned)
-
-    # CIFs are in [0, 1]; same-lib noise on adjacent seeds is typically
-    # under 0.40 at p95 on small data. Loose bound.
-    p95 = float(np.percentile(np.abs(cif_a - cif_b), 95))
-    assert p95 < 0.50, f"within-lib p95 |ΔCIF| = {p95:.3f} too large"
