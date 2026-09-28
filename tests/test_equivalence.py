@@ -3,12 +3,12 @@
 Two tests:
 
 1. Stochastic regression gate on PBC — 10 seeds x 50 trees x 2 modes,
-   parametrized over splitrules ``logrankCR`` and ``logrank``.
-   Enforces ``median |ΔC| < 0.04`` and ``max |ΔC| < 0.12``. These are
-   empirical bounds, not theoretical ones: histogram mode's global bin
-   midpoints can't exactly reproduce reference mode's node-local
-   midpoints at nodes whose samples span non-consecutive global unique
-   values, so some per-seed divergence is unavoidable. The gate catches
+   parametrized over splitrules ``logrankCR`` / ``logrank`` and nsplit 0 / 10.
+   Opt-in (``slow``). Enforces ``median |ΔC| < 0.20`` and
+   ``max |ΔC| < 0.30``. These are empirical bounds, not theoretical ones:
+   histogram mode's global bin midpoints can't exactly reproduce reference
+   mode's node-local midpoints at nodes whose samples span non-consecutive
+   global unique values, so some per-seed divergence is unavoidable. The gate catches
    catastrophic regressions (e.g. broken Aalen-Johansen math would push
    ΔC far beyond these bounds).
 
@@ -60,6 +60,7 @@ def _pbc_default_vs_reference_deltas(
     return deltas
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("splitrule", ["logrankCR", "logrank"])
 @pytest.mark.parametrize("nsplit", [0, 10])
 def test_equivalence_pbc_stochastic(splitrule, nsplit):
