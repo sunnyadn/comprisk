@@ -1,1 +1,1 @@
-"""comprisk vs randomForestSRC paired-seed validation harness (maintainer-only)."""
+"""Maintainer-only scripts that check comprisk against randomForestSRC."""
