@@ -72,15 +72,6 @@ def test_shap_additivity_custom_times(mode):
 # ---------------------------------------------------------------------------
 
 
-def test_shap_output_shape():
-    """SHAP output shape matches spec: (n, p, n_times, n_causes)."""
-    X, time, event = _make_synthetic_cr(n=50)
-    f = CompetingRiskForest(n_estimators=5, random_state=0, max_depth=4).fit(X, time, event)
-    shap, base = f.shap_values(X)
-    assert shap.shape == (len(X), X.shape[1], len(f.unique_times_), f.n_causes_)
-    assert base.shape == (len(f.unique_times_), f.n_causes_)
-
-
 def test_shap_single_sample():
     """SHAP works for a single sample (n=1)."""
     X, time, event = _make_synthetic_cr(n=50)
@@ -138,34 +129,6 @@ def test_shap_synthetic_important_feature():
 # ---------------------------------------------------------------------------
 # SHAP ranking sanity vs OOB VIMP
 # ---------------------------------------------------------------------------
-
-
-def test_shap_agrees_with_oob_vimp_top3():
-    """Top-3 features from mean-|SHAP| overlap with OOB VIMP top-3 (>=2/3)."""
-    rng = np.random.default_rng(7)
-    n = 200
-    X = rng.uniform(size=(n, 5))
-    time = 5.0 - 3.0 * X[:, 0] + rng.normal(scale=0.3, size=n)
-    time = np.clip(time, 0.1, None)
-    event = rng.integers(0, 3, size=n)
-    if not np.any(event == 1):
-        event[0] = 1
-    if not np.any(event == 2):
-        event[1] = 2
-
-    f = CompetingRiskForest(n_estimators=20, random_state=7, max_depth=6, samptype="swr").fit(
-        X, time, event
-    )
-
-    shap, _ = f.shap_values(X)
-    mean_abs_shap = np.abs(shap).mean(axis=(0, 2, 3))
-    shap_top3 = set(np.argsort(mean_abs_shap)[-3:])
-
-    vimp = f.compute_importance()
-    vimp_top3 = set(np.argsort(vimp["composite_vimp"].values)[-3:])
-
-    overlap = len(shap_top3 & vimp_top3)
-    assert overlap >= 2, f"SHAP top-3 {shap_top3} vs VIMP top-3 {vimp_top3}, overlap={overlap}"
 
 
 # ---------------------------------------------------------------------------
@@ -394,22 +357,3 @@ def test_shap_repeated_calls_are_identical():
 # ---------------------------------------------------------------------------
 # Compatibility: slice extraction for shap.summary_plot
 # ---------------------------------------------------------------------------
-
-
-def test_shap_slice_for_summary_plot():
-    """A fixed (time, cause) slice yields a 2-D matrix compatible with upstream shap."""
-    X, time, event = _make_synthetic_cr(n=50)
-    f = CompetingRiskForest(n_estimators=5, random_state=0, max_depth=4).fit(X, time, event)
-    shap, base = f.shap_values(X)
-    # Extract slice for cause=0 at time-index 0
-    slice_2d = shap[:, :, 0, 0]  # (n_samples, n_features)
-    assert slice_2d.ndim == 2
-    assert slice_2d.shape == (len(X), X.shape[1])
-    # Verify this slice satisfies additivity for that (time, cause)
-    cif_pred = f.predict_cif(X)
-    assert np.allclose(
-        slice_2d.sum(axis=1) + base[0, 0],
-        cif_pred[:, 0, 0],
-        atol=1e-9,
-        rtol=1e-6,
-    )

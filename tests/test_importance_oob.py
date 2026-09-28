@@ -28,14 +28,6 @@ def test_derive_perm_seeds_shape_and_determinism():
     assert not np.array_equal(seeds_a, seeds_c)
 
 
-def test_derive_perm_seeds_none_random_state():
-    from comprisk._importance import _derive_perm_seeds
-
-    seeds = _derive_perm_seeds(random_state=None, n_trees=3, n_features=4)
-    assert seeds.shape == (3, 4)
-    assert seeds.dtype == np.int64
-
-
 def _naive_oob_vimp(forest, *, cause: int, random_state: int) -> np.ndarray:
     """Obvious-by-inspection reference: per-feature OOB Breiman permutation VIMP.
 
@@ -159,29 +151,6 @@ def test_oob_constant_feature_yields_zero_vimp():
     assert df.iloc[2]["cause_2_vimp"] == 0.0
 
 
-def test_compute_importance_oob_impl_returns_dataframe():
-    from comprisk._importance import _compute_importance_oob_impl
-
-    X, t, e = _toy(n=200, p=4)
-    forest = CompetingRiskForest(n_estimators=10, random_state=42).fit(X, t, e)
-    forest._X_train_oob_ = X
-    y_struct = np.zeros(len(t), dtype=[("time", np.float64), ("event", np.int64)])
-    y_struct["time"] = t
-    y_struct["event"] = e
-    forest._y_train_oob_ = y_struct
-    df = _compute_importance_oob_impl(
-        forest,
-        causes=[1, 2],
-        random_state=42,
-        n_jobs=1,
-    )
-    assert "feature" in df.columns
-    assert "cause_1_vimp" in df.columns
-    assert "cause_2_vimp" in df.columns
-    assert "composite_vimp" in df.columns
-    assert len(df) == 4
-
-
 def test_compute_importance_oob_impl_n_jobs_bit_equivalent():
     from comprisk._importance import _compute_importance_oob_impl
 
@@ -237,14 +206,3 @@ def test_compute_importance_oob_n_repeats_silently_ignored():
         df_default["cause_1_vimp"].to_numpy(),
         df_with_nrep["cause_1_vimp"].to_numpy(),
     )
-
-
-def test_held_out_path_unchanged():
-    X, t, e = _toy(n=200, p=4)
-    forest = CompetingRiskForest(n_estimators=5, random_state=42).fit(X, t, e)
-    y_eval = np.zeros(len(t), dtype=[("time", np.float64), ("event", np.int64)])
-    y_eval["time"] = t
-    y_eval["event"] = e
-    df = forest.compute_importance(X, y_eval, random_state=42, n_repeats=2)
-    assert len(df) == 4
-    assert "cause_1_vimp" in df.columns

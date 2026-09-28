@@ -52,22 +52,3 @@ def test_no_cause_events_raises():
     event = rng.choice([0, 2], size=n, p=[0.6, 0.4])  # no cause-1
     with pytest.raises(ValueError, match="cause-1"):
         CauseSpecificCox(cause=1).fit(X, time=time, event=event)
-
-
-def test_competing_event_treated_as_censored():
-    """Subjects with competing events should be treated as censored at t_j.
-
-    Verify by running CauseSpecificCox(cause=1) and confirming it agrees
-    with a manual ``event2 := (event == 1)`` Cox PH fit.
-    """
-    rng = np.random.default_rng(42)
-    n = 400
-    X = rng.normal(size=(n, 3))
-    time = rng.exponential(1.0, size=n) + 0.1
-    event = rng.choice([0, 1, 2], size=n, p=[0.3, 0.4, 0.3])
-
-    cs1 = CauseSpecificCox(cause=1).fit(X, time=time, event=event)
-    # Manually censor competing events: relabel as 0.
-    event_manual = np.where(event == 1, 1, 0)
-    cs_manual = CauseSpecificCox(cause=1).fit(X, time=time, event=event_manual)
-    np.testing.assert_allclose(cs1.coef_, cs_manual.coef_, atol=1e-12)

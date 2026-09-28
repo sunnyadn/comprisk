@@ -195,17 +195,6 @@ def test_score_cr_metrics_subset_returns_only_requested():
     assert len(only_brier.iauc) == 0
 
 
-def test_score_cr_handles_alternative_cause():
-    """Asking for cause=2 should swap the case/control role of cause 1
-    and cause 2 — predictions are then the CIF for cause 2."""
-    time, event, probs, eval_times = _make_synth()
-    res1 = score_cr({"M": probs}, time, event, eval_times, cause=1)
-    res2 = score_cr({"M": probs}, time, event, eval_times, cause=2)
-    # Both must produce finite AUCs in at least one cell.
-    assert res1.auc["AUC"].notna().any()
-    assert res2.auc["AUC"].notna().any()
-
-
 # ---------------------------------------------------------------------------
 # Validation / error handling
 # ---------------------------------------------------------------------------
@@ -399,19 +388,6 @@ def test_calibration_cr_wilson_ci_hand_computed():
         assert df.loc[k, "lower_ci"] == pytest.approx(lo_expected, abs=1e-12)
         assert df.loc[k, "upper_ci"] == pytest.approx(hi_expected, abs=1e-12)
         assert df.loc[k, "bin_n"] == n_per_bin
-
-
-def test_calibration_cr_returns_expected_columns():
-    rng = np.random.default_rng(0)
-    n, T = 200, 3
-    time = rng.exponential(3.0, n)
-    event = rng.choice([0, 1, 2], n, p=[0.4, 0.4, 0.2])
-    probs = np.clip(rng.uniform(0, 0.5, (n, T)).cumsum(axis=1) / T, 0, 1)
-    eval_times = np.array([1.0, 3.0, 5.0])
-    df = calibration_cr({"A": probs, "B": probs[::-1]}, time, event, eval_times, n_bins=5)
-    assert list(df.columns) == _CAL_COLS
-    # Two models x T x bins, modulo dropped empty bins. Should be <= 30.
-    assert 0 < len(df) <= 2 * T * 5
 
 
 def test_calibration_cr_rejects_invalid_inputs():

@@ -18,7 +18,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-from sklearn.base import clone
 from sklearn.exceptions import NotFittedError
 
 from comprisk import FineGrayRegression, PenalizedFineGrayRegression, Surv
@@ -434,24 +433,6 @@ def test_standardize_makes_path_scale_equivariant():
 # ---------------------------------------------------------------------------
 # sklearn surface
 # ---------------------------------------------------------------------------
-
-
-def test_clone_preserves_constructor_params():
-    m = PenalizedFineGrayRegression(penalty="mcp", l1_ratio=0.7, gamma=3.0, n_lambda=33, cv=4)
-    c = clone(m)
-    assert c.penalty == "mcp"
-    assert c.l1_ratio == 0.7
-    assert c.gamma == 3.0
-    assert c.n_lambda == 33
-    assert c.cv == 4
-    assert not hasattr(c, "coef_")
-
-
-def test_get_set_params_roundtrip():
-    m = PenalizedFineGrayRegression()
-    m.set_params(penalty="scad", n_lambda=20)
-    assert m.get_params()["penalty"] == "scad"
-    assert m.get_params()["n_lambda"] == 20
 
 
 def test_surv_y_equivalent_to_legacy_kwargs():

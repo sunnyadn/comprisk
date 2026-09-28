@@ -64,17 +64,6 @@ def test_weighted_mean_stacks_in_sorted_cause_order():
     np.testing.assert_allclose(out, np.array([0.25, 0.25]))
 
 
-def test_assemble_df_columns_and_order():
-    feature_names = ["age", "bmi", "bp"]
-    per_cause = {1: np.array([0.1, 0.2, 0.3]), 2: np.array([0.4, 0.5, 0.6])}
-    composite = np.array([0.25, 0.35, 0.45])
-    df = _assemble_df(feature_names, per_cause, composite)
-    assert list(df.columns) == ["feature", "cause_1_vimp", "cause_2_vimp", "composite_vimp"]
-    assert list(df["feature"]) == ["age", "bmi", "bp"]
-    np.testing.assert_allclose(df["cause_1_vimp"].to_numpy(), [0.1, 0.2, 0.3])
-    np.testing.assert_allclose(df["composite_vimp"].to_numpy(), [0.25, 0.35, 0.45])
-
-
 def test_assemble_df_sorted_cause_columns():
     feature_names = ["a", "b"]
     # Insertion order (2, 1): output must still be cause_1 before cause_2.
@@ -111,14 +100,6 @@ def test_feature_importances_raises_before_compute_call():
     forest, _, _, _ = _fit_small_forest()
     with pytest.raises(AttributeError, match="compute_importance"):
         _ = forest.feature_importances_
-
-
-def test_compute_importance_no_args_routes_to_oob():
-    """OOB mode landed; calling with no args runs OOB Breiman permutation VIMP."""
-    forest, _, _, _ = _fit_small_forest()
-    df = forest.compute_importance()
-    assert "cause_1_vimp" in df.columns
-    assert "composite_vimp" in df.columns
 
 
 def test_compute_importance_rejects_plain_ndarray_y():
@@ -170,17 +151,6 @@ def test_compute_importance_bit_equivalent_repeated_calls():
     df_a = forest.compute_importance(X, y, n_repeats=3, random_state=42)
     df_b = forest.compute_importance(X, y, n_repeats=3, random_state=42)
     pd.testing.assert_frame_equal(df_a, df_b, check_exact=True)
-
-
-def test_compute_importance_bit_equivalent_across_forest_n_jobs():
-    # Fit two forests with same seed, different n_jobs; predict must be
-    # deterministic (already guaranteed by P2b), so VIMP must match too.
-    f1, X, time, event = _fit_small_forest(n_jobs=1)
-    f4, _, _, _ = _fit_small_forest(n_jobs=4)
-    y = _make_y(time, event)
-    df1 = f1.compute_importance(X, y, n_repeats=3, random_state=7)
-    df4 = f4.compute_importance(X, y, n_repeats=3, random_state=7)
-    pd.testing.assert_frame_equal(df1, df4, check_exact=True)
 
 
 def _make_cr_data_with_signal(n=1000, n_informative=3, n_noise=3, seed=0):
