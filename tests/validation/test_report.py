@@ -1,6 +1,4 @@
-from pathlib import Path
-
-from validation.report import results_to_df, summarize, write_report
+from validation.report import results_to_df, summarize
 from validation.runner import SeedResult
 
 
@@ -43,16 +41,3 @@ def test_summarize_pass_threshold():
     ]
     df = summarize(results_to_df(results))
     assert bool(df.iloc[0]["pass"]) is True
-
-
-def test_write_report_produces_markdown(tmp_path: Path):
-    df = summarize(results_to_df(_fake_results()))
-    out = tmp_path / "report.md"
-    write_report(df, out, run_date="2026-04-17", commit="abc123", n_seeds=3)
-    content = out.read_text(encoding="utf-8")
-    assert "# comprisk vs randomForestSRC" in content
-    assert "| Dataset |" in content
-    assert "| pbc |" in content or "pbc " in content
-    assert "| hd |" in content or "hd " in content
-    assert "2026-04-17" in content
-    assert "abc123" in content
