@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from comprisk._binning import apply_bins, bin_to_threshold, fit_bin_edges
+from comprisk._binning import apply_bins, fit_bin_edges
 
 
 def test_fit_bin_edges_midpoints_when_few_unique_values():
@@ -104,23 +104,3 @@ def test_apply_bins_accepts_single_bin_feature():
     assert bins.dtype == np.uint8
     assert bins.shape == (3, 1)
     np.testing.assert_array_equal(bins, np.zeros((3, 1), dtype=np.uint8))
-
-
-def test_bin_to_threshold_roundtrip():
-    edges = [np.array([1.5, 2.5, 3.5])]  # 4 bins
-    X = np.array([[2.0]])  # midpoint-binned to bin 1 (between 1.5 and 2.5)
-    bins = apply_bins(X, edges)
-    assert bins[0, 0] == 1
-    t = bin_to_threshold(edges, feature=0, bin_idx=int(bins[0, 0]))
-    assert X[0, 0] <= t  # threshold == 2.5
-
-
-def test_bin_to_threshold_uses_midpoint_upper_bound():
-    edges = [np.array([1.5, 2.5])]  # 3 bins
-    assert bin_to_threshold(edges, 0, 0) == 1.5
-    assert bin_to_threshold(edges, 0, 1) == 2.5
-
-
-def test_bin_to_threshold_out_of_range_returns_inf():
-    edges = [np.array([1.5, 2.5])]  # 3 bins
-    assert bin_to_threshold(edges, 0, 2) == np.inf

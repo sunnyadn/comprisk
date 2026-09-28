@@ -75,20 +75,3 @@ def apply_bins(X: np.ndarray, edges: list[np.ndarray]) -> np.ndarray:
         idx = np.searchsorted(e, X[:, j], side="right")
         out[:, j] = np.clip(idx, 0, n_bins - 1).astype(np.uint8)
     return out
-
-
-def bin_to_threshold(edges: list[np.ndarray], feature: int, bin_idx: int) -> float:
-    """Upper boundary of the bin, in original feature units.
-
-    Bin ``b`` covers values ``v`` in the half-open interval from the
-    previous edge up to and including ``edges[feature][b]``. The first bin
-    has no finite lower boundary; the last bin has no finite upper boundary
-    and this function returns ``+inf`` for it.
-    """
-    col_edges = edges[feature]
-    n_bins = len(col_edges) + 1
-    if bin_idx < 0 or bin_idx >= n_bins:
-        raise ValueError(f"bin_idx={bin_idx} out of range [0, {n_bins - 1}]")
-    if bin_idx == n_bins - 1:
-        return float("inf")
-    return float(col_edges[bin_idx])
