@@ -380,10 +380,15 @@ def test_calibration_cr_wilson_ci_hand_computed():
         n_bins=3,
     )
     df = df.sort_values("predicted_decile").reset_index(drop=True)
-    z = 1.959963984540054
+    # R 4.5.2: prop.test(k, 30, correct = FALSE)$conf.int for k = 5, 12, 24 (Wilson score).
+    wilson_expected = [
+        (0.07336542371848552, 0.3356435050641603),
+        (0.24590628116801858, 0.57679639746677525),
+        (0.62694303586851763, 0.90494892822710127),
+    ]
     for k, k_event in enumerate(n_event):
         p_hat = k_event / n_per_bin
-        lo_expected, hi_expected = _wilson_ci(p_hat, n_per_bin, z)
+        lo_expected, hi_expected = wilson_expected[k]
         assert df.loc[k, "observed_freq"] == pytest.approx(p_hat, abs=1e-12)
         assert df.loc[k, "lower_ci"] == pytest.approx(lo_expected, abs=1e-12)
         assert df.loc[k, "upper_ci"] == pytest.approx(hi_expected, abs=1e-12)
