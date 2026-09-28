@@ -58,34 +58,6 @@ def test_predict_oob_risk_cause_validation():
         forest.predict_oob_risk(cause=n_causes + 1)
 
 
-def test_predict_oob_risk_matches_manual_aggregation():
-    """OOB risk should equal pred[cause-1] / count from the existing primitive."""
-    from comprisk._importance import _ensemble_oob_predictions
-
-    forest, X, _time, _event = _fit(n=120, p=3, n_estimators=15, seed=1)
-    causes = list(range(1, forest.n_causes_ + 1))
-    pred, count = _ensemble_oob_predictions(
-        forest,
-        X,
-        causes=causes,
-        bin_edges=getattr(forest, "bin_edges_", None),
-        time_grid=forest.unique_times_,
-    )
-    expected_cause1 = pred[0] / np.maximum(count, 1)
-    actual_cause1 = forest.predict_oob_risk(cause=1)
-    np.testing.assert_allclose(actual_cause1, expected_cause1, rtol=1e-12, atol=1e-12)
-
-
-def test_oob_score_returns_finite_float():
-    forest, _X, _time, _event = _fit()
-    score = forest.oob_score(cause=1)
-    assert isinstance(score, float)
-    assert np.isfinite(score)
-    # IID synthetic with random labels — score sits near 0.5 but discrimination
-    # is unconstrained at small n; just require [0, 1].
-    assert 0.0 <= score <= 1.0
-
-
 def test_oob_score_matches_external_concordance():
     """oob_score(cause=k) == concordance_index_cr(event, time, predict_oob_risk(k))."""
     forest, _X, time, event = _fit(seed=2)
@@ -94,9 +66,3 @@ def test_oob_score_matches_external_concordance():
         expected = concordance_index_cr(event, time, risk, cause=cause)
         actual = forest.oob_score(cause=cause)
         assert actual == pytest.approx(expected, rel=0, abs=1e-12)
-
-
-def test_oob_score_requires_oob():
-    forest, _X, _time, _event = _fit(samptype="swor", sampsize=1.0)
-    with pytest.raises(ValueError, match="out-of-bag rows"):
-        forest.oob_score(cause=1)

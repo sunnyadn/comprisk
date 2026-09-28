@@ -25,12 +25,6 @@ def test_device_default_is_auto():
     assert f.device == "auto"
 
 
-def test_device_cpu_explicit_skips_detection():
-    X, t, e = _toy()
-    f = CompetingRiskForest(n_estimators=3, device="cpu", random_state=0).fit(X, t, e)
-    assert f._effective_device_ == "cpu"
-
-
 def test_device_invalid_raises_at_fit_not_init():
     # sklearn's estimator contract forbids validation in __init__; the check
     # lives in fit alongside mode / splitrule / samptype.

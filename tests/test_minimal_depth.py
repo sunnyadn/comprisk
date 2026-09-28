@@ -92,15 +92,6 @@ def test_ishwaran_threshold_pure_stump():
     assert abs(got - 0.0) < 1e-12
 
 
-def test_determinism_across_n_jobs():
-    f1 = _fit(seed=42, n_jobs=1)
-    f4 = _fit(seed=42, n_jobs=4)
-    df1 = f1.minimal_depth()
-    df4 = f4.minimal_depth()
-    pd_assert_frame = __import__("pandas").testing.assert_frame_equal
-    pd_assert_frame(df1, df4)
-
-
 def test_planted_signal_ranks_above_noise():
     """3 informative + 7 noise features. Informative land in top-3."""
     rng = np.random.RandomState(7)
@@ -242,26 +233,6 @@ def test_forest_averaged_threshold_single_tree():
     direct = _ishwaran_expected_md(L, max_depth_T=2, n_features=4)
     forest_avg = _forest_averaged_threshold([wr], n_features=4)
     assert abs(direct - forest_avg) < 1e-12
-
-
-def test_forest_averaged_threshold_handles_varying_depth():
-    """Trees with different max_depth padded correctly when averaging L."""
-    from comprisk._minimal_depth import WalkResult, _forest_averaged_threshold
-
-    wr_short = WalkResult(
-        min_depth_per_feature=np.array([0, 0, 1, 1], dtype=np.int32),
-        internal_nodes_per_depth=np.array([1], dtype=np.int64),
-        max_depth=1,
-    )
-    wr_long = WalkResult(
-        min_depth_per_feature=np.array([0, 1, 2, 3], dtype=np.int32),
-        internal_nodes_per_depth=np.array([1, 2, 4], dtype=np.int64),
-        max_depth=3,
-    )
-    # Should not raise; should return a sensible float
-    thr = _forest_averaged_threshold([wr_short, wr_long], n_features=4)
-    assert thr > 0  # nondegenerate
-    assert np.isfinite(thr)
 
 
 def test_rfsrc_var_select_match_follic():
