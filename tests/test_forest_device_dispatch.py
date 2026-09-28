@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from comprisk import CompetingRiskForest
+from comprisk._gpu_detect import detect_cuda
 
 
 def _toy(n=200, p=4, seed=0):
@@ -34,18 +35,20 @@ def test_device_invalid_raises_at_fit_not_init():
         f.fit(X, t, e)
 
 
+@pytest.mark.skipif(detect_cuda()[0], reason="host has CUDA")
+def test_device_cuda_without_cuda_raises():
+    X, t, e = _toy()
+    with pytest.raises(RuntimeError, match="device='cuda'"):
+        CompetingRiskForest(n_estimators=3, device="cuda", random_state=0).fit(X, t, e)
+
+
+@pytest.mark.gpu
 def test_device_cuda_with_n_jobs_warns():
     X, t, e = _toy()
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
-        try:
-            CompetingRiskForest(n_estimators=3, device="cuda", n_jobs=4, random_state=0).fit(
-                X, t, e
-            )
-        except RuntimeError as exc:
-            assert "cuda" in str(exc).lower()
-            return
-        assert any("n_jobs" in str(item.message) for item in w)
+        CompetingRiskForest(n_estimators=3, device="cuda", n_jobs=4, random_state=0).fit(X, t, e)
+    assert any("n_jobs" in str(item.message) for item in w)
 
 
 @pytest.mark.gpu
@@ -92,6 +95,7 @@ def test_device_auto_resolves_to_cpu_silently():
     )
 
 
+@pytest.mark.gpu
 def test_device_cuda_default_njobs_no_warn():
     """device='cuda' with default n_jobs (=-1) should NOT emit the n_jobs-ignored warning.
 
@@ -102,12 +106,8 @@ def test_device_cuda_default_njobs_no_warn():
     X, t, e = _toy()
     with _warn.catch_warnings(record=True) as w:
         _warn.simplefilter("always")
-        try:
-            # default n_jobs=-1
-            CompetingRiskForest(n_estimators=2, device="cuda", random_state=0).fit(X, t, e)
-        except RuntimeError:
-            # Mac: cuda unavailable — fine; the test is about the warning, not the run.
-            return
+        # default n_jobs=-1
+        CompetingRiskForest(n_estimators=2, device="cuda", random_state=0).fit(X, t, e)
     n_jobs_warns = [ww for ww in w if "n_jobs" in str(ww.message)]
     assert n_jobs_warns == [], (
         f"unexpected n_jobs warning(s) at default n_jobs=-1: "
