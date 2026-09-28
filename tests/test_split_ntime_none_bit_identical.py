@@ -1,58 +1,38 @@
 """Regression guard: ``split_ntime=None`` tree-building output must be stable.
 
-The ``ANCHOR_*`` constants below were last re-anchored when Task 5 of
-Plan 1 (C-CPU flat-tree) wired the new flat-tree builder as the
-default-mode path. FlatTree stores dense float64 CIF tables (no sparse
-rep yet), so pickle size increased substantially vs the HistTreeNode
-baseline. History:
+``ANCHOR_SHA256`` is a digest of ``walk_tree()`` over every tree in the forest:
+split features, split bin indices and each leaf's CIF table in pre-order. It
+moves only when tree building changes, not when the pickle schema or fitted
+attributes change. ``test_parallel_equivalence`` checks the same trees within
+one run; this is the cross-version guard for default-mode trees.
 
-  - pre-sprint anchor (Task 0.2): ``b2b65716..`` / 1285307 bytes
-  - post-ε plumbing:              ``71e87f19..`` / 1285322 bytes  (+15, split_ntime)
-  - post-Phase 1:                 ``4ed4b112..`` / 1285335 bytes  (+13, rng_mode)
-  - equivalence preset:           ``33bf973c..`` / 1285400 bytes  (+65, equivalence + inbag_ + _eff_)
-  - oob VIMP storage:             ``5e600f25..`` / 1477560 bytes  (+192k, _X_train_oob_ + _y_train_oob_)
-  - Plan 1 Task 5 (FlatTree):     ``9190560a..`` / 8766783 bytes  (+7.3 MB, dense CIF tables in FlatTree)
-  - Plan 1.5 (predict_chf lazy):  ``cfb10138..`` / 14801489 bytes (+5.7 MB, raw uint32 counts persisted on FlatTree for lazy Nelson-Aalen)
-  - Plan 2 Task 6 (device arg):   ``08cb8cd4..`` / 14801532 bytes (+43, ``device`` ctor attr + ``_effective_device_`` post-fit)
-  - Plan 2 Task 9d.5 (pin cpu):   ``e7930718..`` / 14801527 bytes (-5, ctor pinned ``device='cpu'`` so the test is hardware-independent — ``device='auto'`` resolves to cuda when cupy is installed and produces a different pickle by design)
-  - Surv y_train_oob field order: ``70efbe29..`` / 14801527 bytes (0 byte delta, struct layout swap — ``_y_train_oob_`` field order changed from ``[("time", float64), ("event", int64)]`` to sksurv-canonical ``[("event", int64), ("time", float64)]`` after the ``Surv.from_arrays`` simplification)
-  - SUN-42 time-grid fix:         ``ff50915f..`` / 14801551 bytes (+24, ``_time_grid_max_eff_`` int added as fitted attr by ``_resolve_equivalence``; tree-building unchanged on default path)
-  - SUN-44 package rename:        ``b07aa92c..`` / 14801551 bytes (+0, package renamed ``crforest`` → ``comprisk``; both are 8 chars so the qualified class names embedded in the pickle change content but not size — digest only)
-  - SUN-83 samptype/sampsize:     ``74866704..`` / 14801611 bytes (+60, ``bootstrap`` bool dropped; ``samptype``/``sampsize`` ctor attrs + ``_resolved_sampsize_``/``_oob_available_`` fitted attrs added. Ctor pins ``samptype="swr"`` (the pre-SUN-83 ``bootstrap=True`` default, same ``rng.choice`` draw) so the trees are bit-identical to the prior anchor — the delta is purely the new object schema, not tree-building.)
-
-  - Compact FlatTree state (v2):  ``3532d3ef..`` / 1015622 bytes (-13.8 MB, ``FlatTree.__getstate__`` v2: leaf CIF table dropped (recomputed on load), leaf
-    counts sparse-encoded, topology int32, OOB indices int32. Tree-building
-    unchanged — ``test_serialization.py`` proves round-tripped predictions
-    bit-identical; the delta is purely the serialized representation. Re-pinned
-    pre-merge from 1021996 when the derivable ``is_leaf_flags`` was dropped from
-    the v2 state.)
-
-Future changes that affect ``split_ntime=None`` tree-building behavior
-will drift this digest and flag for investigation.
+Through 0.8.1 the anchor was the SHA-256 of the whole pickled forest, which had to
+be re-pinned for every schema or storage change (see git history of this file).
+This digest was pinned from the same fit that still reproduced that last pickle
+anchor (``3532d3ef..``), so it describes the same trees.
 """
 
 from __future__ import annotations
 
 import hashlib
-import pickle
 
 import numpy as np
 
 from comprisk import CompetingRiskForest
+from tests._tree_walkers import walk_tree
 
-ANCHOR_SHA256 = "3532d3efab6b3e6b2ba2961bcf5fe0ce51e4d8e7da0778ab2cdfbb24244691c8"
-ANCHOR_PICKLE_BYTES = 1015622
+ANCHOR_SHA256 = "f6da3384e9f22b43f846f10cea1e11fd9800bb81a678f3e252fc7bd9efc5ac82"
 
 
-def test_split_ntime_none_matches_anchor_digest() -> None:
+def _fit_forest() -> CompetingRiskForest:
     rng = np.random.default_rng(0)
     n, p = 2000, 10
     X = rng.normal(size=(n, p))
     time = rng.exponential(1.0, size=n) + 0.1
     event = rng.integers(0, 3, size=n)
     # Pin cpu: defensive anchor against a future v1.1 auto→cuda flip
-    # (GPU produces byte-different pickles by design — DFS vs BFS node order).
-    forest = CompetingRiskForest(
+    # (GPU produces different trees by design — DFS vs BFS node order).
+    return CompetingRiskForest(
         n_estimators=50,
         max_depth=6,
         random_state=0,
@@ -65,13 +45,16 @@ def test_split_ntime_none_matches_anchor_digest() -> None:
         # of the SUN-83 sampling-default change (swr full-n -> swor 0.632n).
         samptype="swr",
     ).fit(X, time, event)
-    blob = pickle.dumps(forest, protocol=pickle.HIGHEST_PROTOCOL)
-    digest = hashlib.sha256(blob).hexdigest()
-    assert len(blob) == ANCHOR_PICKLE_BYTES, (
-        f"pickle byte count drift: got {len(blob)}, expected {ANCHOR_PICKLE_BYTES}. "
-        "Investigate — tree-building behavior changed for split_ntime=None."
-    )
+
+
+def _trees_digest(forest: CompetingRiskForest) -> str:
+    walks = [walk_tree(t) for t in forest.trees_]
+    return hashlib.sha256(repr(walks).encode()).hexdigest()
+
+
+def test_split_ntime_none_matches_anchor_digest() -> None:
+    digest = _trees_digest(_fit_forest())
     assert digest == ANCHOR_SHA256, (
-        f"pickle digest drift: got {digest}, expected {ANCHOR_SHA256}. "
-        "split_ntime=None behavior must be stable."
+        f"tree digest drift: got {digest}, expected {ANCHOR_SHA256}. "
+        "split_ntime=None tree building must be stable."
     )
