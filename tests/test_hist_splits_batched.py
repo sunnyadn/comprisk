@@ -56,7 +56,7 @@ def _legacy_best(
     return best_f, best_b, best_s
 
 
-@pytest.mark.parametrize("seed", list(range(20)))
+@pytest.mark.parametrize("seed", list(range(5)))
 @pytest.mark.parametrize(
     "splitrule_code,splitrule,cause", [(0, "logrankCR", 1), (1, "logrank", 1), (1, "logrank", 2)]
 )

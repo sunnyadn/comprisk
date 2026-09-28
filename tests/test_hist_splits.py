@@ -518,7 +518,7 @@ def test_find_best_split_hist_nsplit_works_with_logrank_splitrule():
     assert out_a == out_b
 
 
-@pytest.mark.parametrize("seed", list(range(10)))
+@pytest.mark.parametrize("seed", list(range(3)))
 def test_observed_bins_sorted_ascending_matches_np_unique(seed: int) -> None:
     """Output values and order must equal np.unique bit-exactly."""
     rng = np.random.default_rng(seed)

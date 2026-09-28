@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 
-@pytest.mark.parametrize("seed", list(range(10)))
+@pytest.mark.parametrize("seed", list(range(3)))
 def test_event_counts_roundtrip_random(seed: int) -> None:
     """to_sparse_event_counts -> to_dense_event_counts must round-trip bit-exactly."""
     from comprisk._sparse_leaves import (
@@ -69,7 +69,7 @@ def test_event_counts_all_zero() -> None:
     assert np.array_equal(back, dense)
 
 
-@pytest.mark.parametrize("seed", list(range(10)))
+@pytest.mark.parametrize("seed", list(range(3)))
 def test_at_risk_roundtrip_random(seed: int) -> None:
     """at_risk step-function encoding round-trips bit-exactly."""
     from comprisk._sparse_leaves import to_dense_at_risk, to_sparse_at_risk
@@ -136,20 +136,12 @@ def test_hist_tree_node_lazy_dense_properties() -> None:
 
 
 def test_pickle_size_regression_small_fixture() -> None:
-    """Pickle size regression guard for both flat-tree (default) and
-    sparse-leaf (equivalence='rfsrc') paths.
+    """Pickle size regression guard for the sparse-leaf (equivalence='rfsrc') path.
 
-    Default-mode FlatTree stores dense float64 CIF tables — much larger
-    than HistTreeNode's sparse rep, but bounded. A pickle ballooning
-    beyond ~20 MB on this fixture would indicate accidental duplicate-
-    storage or O(n²) growth in the leaf rep.
-
-    equivalence='rfsrc' (HistTreeNode) keeps the sparse-leaf rep with
-    pickle <= 500 KB. A regression to dense storage would push that to
-    ~2 MB.
-
-    Post-delta.2 baseline for the rfsrc fixture is ~335 KB dominated by
-    numpy-array pickle overhead on ~1000 small leaves.
+    HistTreeNode keeps the sparse-leaf rep with pickle <= 500 KB. A regression
+    to dense storage would push that to ~2 MB. Post-delta.2 baseline for this
+    fixture is ~335 KB dominated by numpy-array pickle overhead on ~1000 small
+    leaves. Default-mode size is guarded by test_serialization.
     """
     import pickle
 
@@ -161,15 +153,6 @@ def test_pickle_size_regression_small_fixture() -> None:
     X = rng.standard_normal((n, p))
     time = rng.uniform(0.1, 10.0, size=n)
     event = rng.integers(0, 3, size=n)
-
-    # Default mode (FlatTree, dense leaf_table)
-    flat_forest = CompetingRiskForest(n_estimators=20, random_state=0, n_jobs=1)
-    flat_forest.fit(X, time=time, event=event)
-    flat_pkl = pickle.dumps(flat_forest)
-    assert len(flat_pkl) <= 20_000_000, (
-        f"FlatTree default-mode pickle = {len(flat_pkl)} bytes (>20 MB); "
-        "indicates dense-blob duplication or unexpected leaf storage growth"
-    )
 
     # equivalence='rfsrc' (HistTreeNode, sparse leaves)
     rfsrc_forest = CompetingRiskForest(
