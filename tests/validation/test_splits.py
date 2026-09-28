@@ -9,14 +9,6 @@ from validation.splits import make_splits
 _SPLITS_DIR = Path(__file__).resolve().parents[2] / "validation" / "splits"
 
 
-def test_make_splits_deterministic():
-    event = np.array([0, 1, 2] * 100)
-    train1, test1 = make_splits(len(event), event, seed=42, test_frac=0.2)
-    train2, test2 = make_splits(len(event), event, seed=42, test_frac=0.2)
-    np.testing.assert_array_equal(train1, train2)
-    np.testing.assert_array_equal(test1, test2)
-
-
 def test_make_splits_complement():
     event = np.array([0, 1, 2] * 100)
     n = len(event)

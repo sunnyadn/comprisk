@@ -48,17 +48,10 @@ def test_eval_on_ref_grid_step_function_semantics():
     np.testing.assert_allclose(out, np.array([[0.3, 0.3, 0.3, 0.7, 0.7]]))
     assert out.shape == (1, 5)
 
-
-def test_eval_on_ref_grid_two_samples():
-    from validation.alignment.equivalence_gate import eval_on_ref_grid
-
-    native_grid = np.array([1.0, 3.0])
-    cif_native = np.array([[0.1, 0.5], [0.2, 0.6]])  # (n_samples, n_native)
-    ref_grid = np.array([2.0, 3.0])
-
-    out = eval_on_ref_grid(cif_native, native_grid, ref_grid)
-    # t=2.0 -> index 0, t=3.0 -> index 1.
-    np.testing.assert_allclose(out, np.array([[0.1, 0.5], [0.2, 0.6]]))
+    # Two rows are evaluated independently on the same grid.
+    cif_two = np.array([[0.1, 0.5], [0.2, 0.6]])
+    out_two = eval_on_ref_grid(cif_two, np.array([1.0, 3.0]), np.array([2.0, 3.0]))
+    np.testing.assert_allclose(out_two, cif_two)
 
 
 def _fixture_cells_perfect_match(n_seeds: int = 4) -> list[dict]:
@@ -84,30 +77,6 @@ def _fixture_cells_perfect_match(n_seeds: int = 4) -> list[dict]:
     return cells
 
 
-def test_aggregate_dataset_keys_and_shapes():
-    from validation.alignment.equivalence_gate import aggregate_dataset
-
-    cells = _fixture_cells_perfect_match(n_seeds=4)
-    agg = aggregate_dataset(cells)
-
-    expected_keys = {
-        "within_cr_p95_risk",
-        "within_rf_p95_risk",
-        "within_cr_p95_cif",
-        "within_rf_p95_cif",
-        "cross_p95_risk",
-        "cross_p95_cif",
-        "cross_max_risk",
-        "cross_max_cif",
-        "cross_p95_max_over_seeds_risk",
-        "cross_p95_max_over_seeds_cif",
-        "quantiles",
-        "n_seeds",
-    }
-    assert set(agg.keys()) == expected_keys
-    assert agg["n_seeds"] == 4
-
-
 def test_aggregate_dataset_perfect_match_cross_zero():
     from validation.alignment.equivalence_gate import aggregate_dataset
 
@@ -119,9 +88,14 @@ def test_aggregate_dataset_perfect_match_cross_zero():
     assert agg["cross_p95_cif"] == 0.0
     assert agg["cross_max_risk"] == 0.0
     assert agg["cross_max_cif"] == 0.0
+    assert agg["cross_p95_max_over_seeds_risk"] == 0.0
+    assert agg["cross_p95_max_over_seeds_cif"] == 0.0
     # Within-lib still positive (seed-to-seed variation).
     assert agg["within_cr_p95_risk"] > 0.0
     assert agg["within_cr_p95_cif"] > 0.0
+    assert agg["within_rf_p95_risk"] > 0.0
+    assert agg["within_rf_p95_cif"] > 0.0
+    assert agg["n_seeds"] == 4
 
 
 def test_aggregate_dataset_quantiles_block_shape_and_cross_zero():
