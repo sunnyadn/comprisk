@@ -73,4 +73,4 @@ def write_report(
             f"| {row['max_abs_delta_c']:.3f} "
             f"| {mark} |"
         )
-    path.write_text("\n".join(lines) + "\n")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")

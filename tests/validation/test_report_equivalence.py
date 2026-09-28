@@ -85,7 +85,7 @@ def test_write_report_contains_gate_table_and_verdict(tmp_path):
         header=header,
         path=out,
     )
-    text = out.read_text()
+    text = out.read_text(encoding="utf-8")
 
     # Header fields.
     assert "abc1234" in text
@@ -127,7 +127,7 @@ def test_write_report_all_pass_verdict(tmp_path):
         header=header,
         path=out,
     )
-    text = out.read_text()
+    text = out.read_text(encoding="utf-8")
     assert "EQUIVALENCE AUDIT: PASS (2/2)" in text
 
 
@@ -144,7 +144,7 @@ def test_write_report_fail_verdict_includes_reason(tmp_path):
         header=header,
         path=out,
     )
-    text = out.read_text()
+    text = out.read_text(encoding="utf-8")
     assert "EQUIVALENCE AUDIT: FAIL" in text
     assert "pbc" in text  # the failing dataset is named
 
@@ -165,7 +165,7 @@ def test_write_report_binning_residual_annotation(tmp_path):
         header=header,
         path=out,
     )
-    text = out.read_text()
+    text = out.read_text(encoding="utf-8")
     assert "binning residual candidate" in text
     # And the explanatory note must be present. The footer was updated on
     # 2026-04-24 after the nsplit convergence sweep showed binning is a
@@ -200,7 +200,7 @@ def test_write_report_quantile_block_rendered_when_present(tmp_path):
         header=header,
         path=out,
     )
-    text = out.read_text()
+    text = out.read_text(encoding="utf-8")
     assert "Quantile-dominance view" in text
     assert "q0.5" in text and "q0.95" in text and "q0.99" in text
     assert "cross-lib (median over seeds)" in text
@@ -220,5 +220,5 @@ def test_write_report_no_quantile_block_when_absent(tmp_path):
         header=header,
         path=out,
     )
-    text = out.read_text()
+    text = out.read_text(encoding="utf-8")
     assert "Quantile-dominance view" not in text

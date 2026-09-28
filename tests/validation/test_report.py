@@ -49,7 +49,7 @@ def test_write_report_produces_markdown(tmp_path: Path):
     df = summarize(results_to_df(_fake_results()))
     out = tmp_path / "report.md"
     write_report(df, out, run_date="2026-04-17", commit="abc123", n_seeds=3)
-    content = out.read_text()
+    content = out.read_text(encoding="utf-8")
     assert "# comprisk vs randomForestSRC" in content
     assert "| Dataset |" in content
     assert "| pbc |" in content or "pbc " in content
