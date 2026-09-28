@@ -71,8 +71,9 @@ jobs:
       - name: Install package with dev extras (locked)
         run: uv sync --locked --extra dev --python ${{ matrix.python-version }}
 
+      # tests/validation covers the maintainer harness, which users never run.
       - name: Run pytest with coverage
-        run: uv run pytest --cov=comprisk --cov-report=term-missing
+        run: uv run pytest --cov=comprisk --cov-report=term-missing ${{ runner.os == 'Windows' && '--ignore=tests/validation' || '' }}
 
   # The locked jobs above pin every dependency so an unrelated upstream release
   # cannot break a build that changed nothing. That alone would make us blind:
