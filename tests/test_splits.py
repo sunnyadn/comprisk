@@ -7,7 +7,6 @@ from comprisk._splits import (
     bin_times,
     composite_log_rank_statistic,
     find_best_split,
-    log_rank_statistic_relabeled,
 )
 
 
@@ -28,8 +27,9 @@ def test_log_rank_ignores_non_cause_events():
     event = np.array([2, 2, 2, 2])
     tb = bin_times(time, event)
     left = np.array([True, True, False, False])
-    # No cause-1 events → statistic is zero
-    assert log_rank_statistic_relabeled(tb, left, cause=1) == 0.0
+    # No cause-1 events → the cause-1 numerator is zero
+    num, _ = _logrank_components(tb, left, cause=1)
+    assert num == 0.0
 
 
 def test_composite_equals_single_cause_when_one_cause():
@@ -38,7 +38,8 @@ def test_composite_equals_single_cause_when_one_cause():
     event = np.array([1, 0, 1, 0, 1])
     tb = bin_times(time, event)
     left = np.array([True, True, False, False, False])
-    single = log_rank_statistic_relabeled(tb, left, cause=1)
+    num, var = _logrank_components(tb, left, cause=1)
+    single = num**2 / var
     composite = composite_log_rank_statistic(tb, left, n_causes=1)
     assert np.isclose(single, composite)
 
@@ -62,8 +63,9 @@ def test_composite_differs_from_sum_of_per_cause_stats():
     event = np.array([1, 2, 1, 2, 1, 2])
     tb = bin_times(time, event)
     left = np.array([True, True, True, False, False, False])
-    c1 = log_rank_statistic_relabeled(tb, left, cause=1)
-    c2 = log_rank_statistic_relabeled(tb, left, cause=2)
+    num1, var1 = _logrank_components(tb, left, cause=1)
+    num2, var2 = _logrank_components(tb, left, cause=2)
+    c1, c2 = num1**2 / var1, num2**2 / var2
     composite = composite_log_rank_statistic(tb, left, n_causes=2)
     # Under the new pooled formula these are not equal; signed numerators
     # cancel across causes (cause 1 favors left, cause 2 favors right here).

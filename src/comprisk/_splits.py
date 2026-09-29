@@ -201,20 +201,6 @@ def cause_specific_log_rank_statistic(
     return float(num_sum * num_sum / var_sum)
 
 
-def log_rank_statistic_relabeled(tb: _TimeBinning, left_mask: np.ndarray, cause: int) -> float:
-    """Cause-specific log-rank statistic for the given binary split.
-
-    Events of the given ``cause`` are treated as events; all other codes
-    (including competing causes and censoring) are treated as censored.
-    """
-    if left_mask.all() or (~left_mask).all():
-        return 0.0
-    numerator, variance_sum = _logrank_components(tb, left_mask, cause)
-    if variance_sum < 1e-12:
-        return 0.0
-    return float(numerator**2 / variance_sum)
-
-
 def composite_log_rank_statistic(tb: _TimeBinning, left_mask: np.ndarray, n_causes: int) -> float:
     """Composite log-rank statistic (pooled standardized across causes).
 
