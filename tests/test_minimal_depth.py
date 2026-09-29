@@ -249,31 +249,13 @@ def test_rfsrc_var_select_match_follic():
         pytest.skip(f"oracle missing: {fixture}; run validation/alignment/gen_var_select_oracle.R")
     oracle = json.loads(fixture.read_text())
 
-    # Load follic from rpy2 if available, otherwise skip — we mirror rfSRC's bundled data
-    pytest.importorskip("rpy2")
-    import rpy2.robjects
-    from rpy2.robjects import pandas2ri
-    from rpy2.robjects import r as R  # noqa: N812
-
-    R("suppressMessages(library(randomForestSRC)); data(follic)")
-    follic_r = R("follic")
-    with (rpy2.robjects.default_converter + pandas2ri.converter).context():
-        follic = rpy2.robjects.conversion.get_conversion().rpy2py(follic_r)
-
     import pandas as pd
 
+    # Vendored randomForestSRC::follic; ch is stored 0/1, so +1 gives R's 1-based factor code.
+    follic = pd.read_csv(Path(__file__).resolve().parent / "fixtures" / "cmprsk_follic_data.csv")
+    follic["ch"] += 1
     feature_cols = [c for c in follic.columns if c not in ("time", "status")]
-    # Encode categoricals as integer codes to match rfSRC's internal numeric encoding.
-    # rfSRC treats factor levels as their 1-based integer codes internally.
-    X_raw = {}
-    for c in feature_cols:
-        col = follic[c]
-        if hasattr(col, "cat"):
-            # factor → 1-based integer code (R convention: level index starting at 1)
-            X_raw[c] = col.cat.codes.to_numpy(dtype=np.float64) + 1.0
-        else:
-            X_raw[c] = col.to_numpy(dtype=np.float64)
-    X = pd.DataFrame(X_raw)
+    X = follic[feature_cols].astype(np.float64)
     y = np.array(
         list(
             zip(
